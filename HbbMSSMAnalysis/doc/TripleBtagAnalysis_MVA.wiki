@@ -1,0 +1,74 @@
+== Introduction ==
+
+''' @2012 I. Marfin '''   ''<Higgs DESY Group>''
+
+
+There are a few examples of  MVA selection, placed in
+               Analysis/HbbMSSMAnalysis/bin
+               Analysis/HbbMSSMAnalysis/test
+
+# '''TripleBtagAnalysis_MVA'''.cpp
+# '''testMVA'''.cpp
+
+== TripleBtagAnalysis_MVA == 
+
+An example of how-to use '''MVAComputer''' (MVATrainer) to construct '' 'Control  (Signal-free)' '' region where Mjj templates are built later.
+
+It's the part of HbbMSSM analysis of  ''<Higgs DESY Group>''.
+
+All '''MVAComputer''' related code in  '''TripleBtagAnalysis_MVA''' is placed in 'workaround' tags 
+
+       ///_MVA_BEGIN_
+         ...
+       ///_MVA_END_
+
+=== What doest MVA do in TripleBtagAnalysis_MVA ? ===
+
+There are actually two things which MVA does. 
+
+# It makes mva selection ('''MVAComputer''') just after kinematical preselection. That means that all stuff (histograms filling, templates creation etc) is being done already in control region.
+# It performs filling TTrees ('''MVATrainer''') for further MVA training. All trees are created after 'additional' preselecton:
+* deltaR>1.0 preselection 
+* btag of the first 3 jets, if samples are data
+* trigger0 and trigger1 must be fired, if samples are data
+
+It's important to know that the 'additional' preselecton doesn't affect all stuff like histograms filling, templates creation etc
+Trees are being written in 'root' directory of the output file: '''TripleBtagAnalysis.root'''
+
+
+=== How to run it ? ===
+
+There are two ways of running  '''TripleBtagAnalysis_MVA'''.cpp
+
+# Binary running
+# script running in root (ala Rainer's starting method)
+
+I strongly recommend you to use binary.
+
+
+==== Binary running  ====
+
+* Compile binary:
+           cd src/Analysis/HbbMSSMAnalysis/
+           scramv1 b 
+* Run binary:
+           $CMSSW_BASE/bin/slc5_amd64_gcc462/TripleBtagAnalysis_MVA mvasettings=/Analysis/HbbMSSMAnalysis/data/mvasettings.lst
+
+==== script running in root (ala Rainer's starting method) ====
+* go  to folder where rootlogon.C file is placed
+           cd src/Analysis/HbbMSSMAnalysis/test
+* run root (use full path to script). $CMSSW_BASE/src/Analysis/HbbMSSMAnalysis/data//mvasettings.lst will be read.
+           root -l  $CMSSW_BASE/src/Analysis/HbbMSSMAnalysis/bin/TripleBtagAnalysis_MVA.cpp+
+* run root. "/bla/bla/bla/mvasettings.lst" will be read. It must be FileInPath format, for example: Analysis/HbbMSSMAnalysis/data/mvasettings.lst
+           root -l "$CMSSW_BASE/src/Analysis/HbbMSSMAnalysis/bin/TripleBtagAnalysis_MVA.cpp(\"/bla/bla/bla/mvasettings.lst\")+"
+
+
+
+== testMVA ==
+
+An example of pseudo-analysis. It can be used for testing purpose only.
+
+== Contact ==
+
+Igor Marfin <'''Igor.Marfin@desy.de'''>
+

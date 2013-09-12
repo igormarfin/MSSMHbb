@@ -1,0 +1,36 @@
+# it's a comment
+# the format of the file:
+# 	 trainer of mva
+#	 do not put CUT<=val here, trainer can't be used for events selection!
+# Name:MethodName:FileInPath(path_to_file_xml):
+# 	 mva computer
+# Name:MethodName:FileInPath(path_to_weight_dir/MVACOMPUTER):CUT<=val
+#
+# _1_ _2_ etc are used in the names to save this unique order, 
+#  because the lines below are parsed and stored in std::maps which performs always sorting , i.e. Compare=Less<key>
+# 
+
+# it's a computer, to produce mva
+_0_BDTComp:BDT_654174:Analysis/HbbMSSMAnalysis/data/MVAWEIGHTS/BDT_2012/weights/MVACOMPUTER:CUT<=10.0
+# it's a trainer, to collect mva
+_1_BDT:BDT_654174:Analysis/HbbMSSMAnalysis/data/treeBDT_2012.xml:
+
+# it's a computer+trainer
+
+_2_BDTCompVeryTight:BDT_654174:Analysis/HbbMSSMAnalysis/data/MVAWEIGHTS/BDT_2012/weights/MVACOMPUTER:CUT<=-0.38
+_3_BDTSelVeryTight:BDT_654174:Analysis/HbbMSSMAnalysis/data/treeBDTSelVeryTight_2012.xml:
+
+# it's a computer+trainer
+
+_4_BDTCompTight:BDT_654174:Analysis/HbbMSSMAnalysis/data/MVAWEIGHTS/BDT_2012/weights/MVACOMPUTER:CUT<=-0.25
+_5_BDTSelTight:BDT_654174:Analysis/HbbMSSMAnalysis/data/treeBDTSelTight_2012.xml:
+
+# it's a computer+trainer
+
+_6_BDTCompLoose:BDT_654174:Analysis/HbbMSSMAnalysis/data/MVAWEIGHTS/BDT_2012/weights/MVACOMPUTER:CUT<=-0.05
+_7_BDTSelLoose:BDT_654174:Analysis/HbbMSSMAnalysis/data/treeBDTSelLoose_2012.xml:
+
+# final computer
+
+_8_BDTCompFinal:BDT_654174:Analysis/HbbMSSMAnalysis/data/MVAWEIGHTS/BDT_2012/weights/MVACOMPUTER:CUT<=-0.38
+

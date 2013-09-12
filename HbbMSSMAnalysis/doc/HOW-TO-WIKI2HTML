@@ -1,0 +1,31 @@
+WIKI markup is very simple and 'light'. You can create your own 'online' documents/man-pages in very easy way.
+
+Here is a short introduction to wiki markup
+
+http://www.mediawiki.org/wiki/Help:Formatting#Inserting_symbols
+
+After writtings of wiki, please, convert it to html man-pages, ie
+
+<MVA wiki>
+
+1)  ./mediawiki2texi.py TripleBtagAnalysis_MVA.wiki TripleBtagAnalysis_MVA.info "TripleBtagAnalysis with MVA" > TripleBtagAnalysis_MVA.texinfo
+2)  makeinfo --html TripleBtagAnalysis_MVA.texinfo
+
+you can get simple README file (text file)
+3) makeinfo TripleBtagAnalysis_MVA.texinfo
+
+
+<PileUp wiki>
+ 
+1) ./mediawiki2texi.py PU.wiki PU.info "TripleBtagAnalysis with PU" > PU.texinfo
+2)   makeinfo --html PU.texinfo
+3)  makeinfo PU.texinfo
+
+<plotTreeVariables.wiki>
+
+1) ./mediawiki2texi.py plotTreeVariables.wiki plotTreeVariables.info "plotTreeVariables.C how to" > plotTreeVariables.texinfo
+2)   makeinfo --html plotTreeVariables.texinfo
+3)  makeinfo plotTreeVariables.texinfo
+
+
+@2012 I. Marfin <Igor.Marfin@desy.de>

@@ -1,0 +1,3 @@
+//.......  A snip to set global parameters for the bb-purity analysis 
+//......
+//......   empty by default

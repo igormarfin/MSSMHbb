@@ -1,0 +1,18 @@
+# it's a comment
+# the format of the file:
+# 	 trainer of mva
+#	 do not put CUT<=val here, trainer can't be used for events selection!
+# Name:MethodName:FileInPath(path_to_file_xml):
+# 	 mva computer
+# Name:MethodName:FileInPath(path_to_weight_dir/MVACOMPUTER):CUT<=val
+#
+# _1_ _2_ etc are used in the names to save this unique order, 
+#  because the lines below are parsed and stored in std::maps which performs always sorting , i.e. Compare=Less<key>
+# 
+
+
+# final computer
+
+_8_BDTCompFinal:BDT_805346:Analysis/HbbMSSMAnalysis/data/MVAWEIGHTS/BDT_2012_v2/weights/MVACOMPUTER:CUT<=0.012
+
+

@@ -1,0 +1,46 @@
+## The comment starts with '#'
+
+## The line in the file must have 5 fields:
+## id:type:nSigma:path_to_file_with_Template
+
+## 'file_with_Template' must be produced by TripleBtagAnalysis.cpp or TripleBtagAnalysis_MVA.cpp
+
+## 'path_to' must be an absolute path  a relative to a current place where the script is running. 
+
+## type: "up","down" or "central" ; "central" is only a reserved keyword, it's not supposed to use now.
+
+## id:  some unique name describing the source of syst, ie "JES", "SFbc", "SFudsg" etc
+## if you have "up" with some id, please provide "down" with the same name
+
+## Example:
+#JES:up:2.0:TripleBtagAnalysis_JESUp.root
+#JES:down:2.0:TripleBtagAnalysis_JESDown.root
+
+#Data-driven-Background
+
+#JES
+JES_Bkg:up:2.0:/data/user/marfin/CMSSW_5_0_1/src/Analysis/HbbMSSMAnalysis/test/Systematics-test-2/theMergeList-data/SF/TripleBtagAnalysis.root
+JES_Bkg:down:2.0:/data/user/marfin/CMSSW_5_0_1/src/Analysis/HbbMSSMAnalysis/test/Systematics-test-2/theMergeList-data/SF/TripleBtagAnalysis.root
+
+#SF of b/c
+SFbc_Bkg:up:2.0:/data/user/marfin/CMSSW_5_0_1/src/Analysis/HbbMSSMAnalysis/test/Systematics-test-2/theMergeList-data/SFbc_SysUp/TripleBtagAnalysis.root
+SFbc_Bkg:down:2.0:/data/user/marfin/CMSSW_5_0_1/src/Analysis/HbbMSSMAnalysis/test/Systematics-test-2/theMergeList-data/SFbc_SysDown/TripleBtagAnalysis.root
+
+#SF of u/d/s/g
+SFudsg_Bkg:up:2.0:/data/user/marfin/CMSSW_5_0_1/src/Analysis/HbbMSSMAnalysis/test/Systematics-test-2/theMergeList-data/SFudsg_SysUp/TripleBtagAnalysis.root
+SFudsg_Bkg:down:2.0:/data/user/marfin/CMSSW_5_0_1/src/Analysis/HbbMSSMAnalysis/test/Systematics-test-2/theMergeList-data/SFudsg_SysDown/TripleBtagAnalysis.root
+
+
+#Signal 
+
+#JES
+JES_Sgn:up:2.0:/data/user/marfin/CMSSW_5_0_1/src/Analysis/HbbMSSMAnalysis/test/Systematics-test-2/theMergeList-SUSYBBHToBB_M-120_7TeV-pythia6-tauola/JES_SysUp/job_1/TripleBtagAnalysis.root
+JES_Sgn:down:2.0:/data/user/marfin/CMSSW_5_0_1/src/Analysis/HbbMSSMAnalysis/test/Systematics-test-2/theMergeList-SUSYBBHToBB_M-120_7TeV-pythia6-tauola/JES_SysDown/job_1/TripleBtagAnalysis.root
+
+#SF of b/c
+SFbc_Sgn:up:2.0:/data/user/marfin/CMSSW_5_0_1/src/Analysis/HbbMSSMAnalysis/test/Systematics-test-2/theMergeList-SUSYBBHToBB_M-120_7TeV-pythia6-tauola/SFbc_SysUp/job_1/TripleBtagAnalysis.root
+SFbc_Sgn:down:2.0:/data/user/marfin/CMSSW_5_0_1/src/Analysis/HbbMSSMAnalysis/test/Systematics-test-2/theMergeList-SUSYBBHToBB_M-120_7TeV-pythia6-tauola/SFbc_SysDown/job_1/TripleBtagAnalysis.root
+
+#SF of u/d/s/g
+SFudsg_Sgn:up:2.0:/data/user/marfin/CMSSW_5_0_1/src/Analysis/HbbMSSMAnalysis/test/Systematics-test-2/theMergeList-SUSYBBHToBB_M-120_7TeV-pythia6-tauola/SFudsg_SysUp/job_1/TripleBtagAnalysis.root
+SFudsg_Sgn:down:2.0:/data/user/marfin/CMSSW_5_0_1/src/Analysis/HbbMSSMAnalysis/test/Systematics-test-2/theMergeList-SUSYBBHToBB_M-120_7TeV-pythia6-tauola/SFudsg_SysDown/job_1/TripleBtagAnalysis.root

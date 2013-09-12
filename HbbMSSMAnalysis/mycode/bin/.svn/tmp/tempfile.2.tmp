@@ -1,0 +1,187 @@
+<use   name="rootgraphics"/>
+<use   name="root"/>
+<use   name="rootmath"/>
+<use   name="Analysis/Utilities"/>
+
+<use   name="FWCore/FWLite"/>
+<use   name="PhysicsTools/FWLite"/>
+<use   name="FWCore/ParameterSet"/>
+
+
+<bin   name="HBBAnalysisMacro" file="HBBAnalysisMacro.cpp">
+<flags   LDFLAGS="-lCore -lCint -lRIO -lNet -lHist -lGraf -lGraf3d -lGpad -lTree -lRint -lPostscript -lMatrix -lPhysics -lMathCore -lThread -lz -pthread -lm -ldl -rdynamic"/>
+</bin>
+
+<bin   name="HBBAnalysisMacroMC" file="HBBAnalysisMacroMC.cpp">
+<flags   LDFLAGS="-lCore -lCint -lRIO -lNet -lHist -lGraf -lGraf3d -lGpad -lTree -lRint -lPostscript -lMatrix -lPhysics -lMathCore -lThread -lz -pthread -lm -ldl -rdynamic"/>
+</bin>
+
+#<bin   name="HBBAnalysisMacro2012" file="HBBAnalysisMacro2012.cpp">
+#<flags   LDFLAGS="-lCore -lCint -lRIO -lNet -lHist -lGraf -lGraf3d -lGpad -lTree -lRint -lPostscript -lMatrix -lPhysics -lMathCore -lThread -lz -pthread -lm -ldl -rdynamic"/>
+#</bin>
+
+<bin   name="BtagClosureTest_RelOnlEff" file="BtagClosureTest_RelOnlEff.cpp">
+<flags   LDFLAGS="-lCore -lCint -lRIO -lNet -lHist -lGraf -lGraf3d -lGpad -lTree -lRint -lPostscript -lMatrix -lPhysics -lMathCore -lThread -lz -pthread -lm -ldl -rdynamic"/>
+</bin>
+
+
+
+
+
+
+
+
+
+<bin   name="PUWeight" file="PUWeight.cpp">
+<flags   LDFLAGS="-lCore -lCint -lRIO -lNet -lHist -lGraf -lGraf3d -lGpad -lTree -lRint -lPostscript -lMatrix -lPhysics -lMathCore -lThread -lz -pthread -lm -ldl -rdynamic"/>
+</bin>
+
+
+#<bin name="TripleBtagAnalysis"   file="TripleBtagAnalysis.cpp">
+#</bin>
+
+<bin name="CustomFitLv2"   file="CustomFitLv2.cpp">
+</bin>
+
+<bin name="PV_PUWeight_MEDIUM" file="PV_PUWeight.cpp">
+#        <flags   CPPDEFINES="PU_ALEX=1"/>
+	     <flags   CPPDEFINES="ONLINE_BTAG_MATCH=1"/>
+		 <flags   CPPDEFINES="CMSSW535=1"/>
+</bin>
+
+<bin name="PV_PUWeight_HIGH" file="PV_PUWeight.cpp">
+#        <flags   CPPDEFINES="PU_ALEX=1"/>
+         <flags   CPPDEFINES="HIGH_MASS=1"/>  
+         <flags   CPPDEFINES="ONLINE_BTAG_MATCH=1"/>
+		 <flags   CPPDEFINES="CMSSW535=1"/>
+
+</bin>
+
+<bin name="PV_PUWeight_VERY_HIGH" file="PV_PUWeight.cpp">
+#        <flags   CPPDEFINES="PU_ALEX=1"/>
+         <flags   CPPDEFINES="VERY_HIGH_MASS=1"/> 
+    	 <flags   CPPDEFINES="ONLINE_BTAG_MATCH=1"/>
+		 <flags   CPPDEFINES="CMSSW535=1"/>
+</bin>
+
+<bin name="PV_PUWeight_MEDIUM_data" file="PV_PUWeight.cpp">
+#        <flags   CPPDEFINES="PU_ALEX=1"/>
+	     <flags   CPPDEFINES="ONLINE_BTAG_MATCH=1"/>
+#		 <flags   CPPDEFINES="CMSSW535=1"/>
+</bin>
+
+<bin name="PV_PUWeight_HIGH_data" file="PV_PUWeight.cpp">
+#        <flags   CPPDEFINES="PU_ALEX=1"/>
+         <flags   CPPDEFINES="HIGH_MASS=1"/>  
+         <flags   CPPDEFINES="ONLINE_BTAG_MATCH=1"/>
+#		 <flags   CPPDEFINES="CMSSW535=1"/>
+
+</bin>
+
+<bin name="PV_PUWeight_VERY_HIGH_data" file="PV_PUWeight.cpp">
+#        <flags   CPPDEFINES="PU_ALEX=1"/>
+         <flags   CPPDEFINES="VERY_HIGH_MASS=1"/> 
+    	 <flags   CPPDEFINES="ONLINE_BTAG_MATCH=1"/>
+#		 <flags   CPPDEFINES="CMSSW535=1"/>
+</bin>
+
+
+
+<bin name="Producer_MVA_MEDIUM"   file="Producer_MVA.cpp">
+     <flags CPPDEFINES="CMSSW_CPP=1"/>
+      <flags   CPPDEFINES="ONLINE_BTAG_MATCH=1"/>
+     <flags    CPPDEFINES="MVA_WITH_KINSELECTION=1"/>
+     <flags    CPPDEFINES="MVA_WITH_TRIGSELECTION=1"/>
+#     <flags   CPPDEFINES="MEDIUM_MASS=1"/> 
+</bin>
+
+<bin name="Producer_MVA_HIGH"   file="Producer_MVA.cpp">
+     <flags CPPDEFINES="CMSSW_CPP=1"/>
+      <flags   CPPDEFINES="ONLINE_BTAG_MATCH=1"/>
+     <flags    CPPDEFINES="MVA_WITH_KINSELECTION=1"/>
+     <flags    CPPDEFINES="MVA_WITH_TRIGSELECTION=1"/>
+       <flags   CPPDEFINES="HIGH_MASS=1"/> 
+</bin>
+
+<bin name="Producer_MVA_VERY_HIGH"   file="Producer_MVA.cpp">
+      <flags CPPDEFINES="CMSSW_CPP=1"/>
+      <flags   CPPDEFINES="ONLINE_BTAG_MATCH=1"/>
+     <flags    CPPDEFINES="MVA_WITH_KINSELECTION=1"/>
+     <flags    CPPDEFINES="MVA_WITH_TRIGSELECTION=1"/>
+      <flags   CPPDEFINES="VERY_HIGH_MASS=1"/> 
+</bin>
+
+
+
+
+<bin name="TripleBtagAnalysis_MVA"   file="TripleBtagAnalysis_MVA.cpp">
+	 <flags   CPPDEFINES="CMSSW_CPP=1"/>
+#	 <flags   CPPDEFINES="EXCLUDE_TRAINER_FROM_SELECTION=1"/>
+#	 <flags   CPPDEFINES="PU=1"/>
+#	 <flags   CPPDEFINES="PU_ALEX=1"/>
+</bin>
+
+<bin name="TripleBtagAnalysis_MVA_SF_MEDIUM"   file="TripleBtagAnalysis_MVA_SF.cpp">
+# 	 <flags   CPPDEFINES="RUNEVENTLUMI_LIST=1"/>
+# 	 <flags   CPPDEFINES="TRUNCATED=1"/>          
+	 <flags CPPDEFINES="CMSSW_CPP=1"/>
+	 <flags   CPPDEFINES="ONLINE_BTAG_MATCH=1"/>
+#	 <flags CPPDEFINES="NO_OFFLINESEL=1"/>
+#	 <flags CPPDEFINES="NO_TRIGSEL=1"/>
+#	 <flags   CPPDEFINES="EXCLUDE_TRAINER_FROM_SELECTION=1"/>
+	 <flags   CPPDEFINES="PU=1"/>
+	 <flags   CPPDEFINES="SF=1"/>
+#	 <flags   CPPDEFINES="JER=1"/>
+#	 <flags   CPPDEFINES="SYST=1"/>
+#     	 <flags   CPPDEFINES="MEDIUM_MASS=1"/> 
+#	 <flags   CPPDEFINES="PU_ALEX=1"/>
+</bin>
+
+
+<bin name="TripleBtagAnalysis_MVA_SF_HIGH"   file="TripleBtagAnalysis_MVA_SF.cpp">
+# 	 <flags   CPPDEFINES="RUNEVENTLUMI_LIST=1"/>
+# 	 <flags   CPPDEFINES="TRUNCATED=1"/>          
+	 <flags   CPPDEFINES="ONLINE_BTAG_MATCH=1"/>
+	 <flags   CPPDEFINES="CMSSW_CPP=1"/>
+#    <flags CPPDEFINES="NO_OFFLINESEL=1"/>
+#    <flags CPPDEFINES="NO_TRIGSEL=1"/>
+#	 <flags   CPPDEFINES="EXCLUDE_TRAINER_FROM_SELECTION=1"/>
+	 <flags   CPPDEFINES="PU=1"/>
+	 <flags   CPPDEFINES="SF=1"/>
+#	 <flags   CPPDEFINES="JER=1"/>
+#	 <flags   CPPDEFINES="SYST=1"/>
+     	 <flags   CPPDEFINES="HIGH_MASS=1"/> 
+#	 <flags   CPPDEFINES="PU_ALEX=1"/>
+</bin>
+
+
+<bin name="TripleBtagAnalysis_MVA_SF_VERY_HIGH"   file="TripleBtagAnalysis_MVA_SF.cpp">
+# 	 <flags   CPPDEFINES="RUNEVENTLUMI_LIST=1"/>
+# 	 <flags   CPPDEFINES="TRUNCATED=1"/>          
+	 <flags   CPPDEFINES="ONLINE_BTAG_MATCH=1"/>
+	 <flags   CPPDEFINES="CMSSW_CPP=1"/>
+#    <flags CPPDEFINES="NO_OFFLINESEL=1"/>
+#    <flags CPPDEFINES="NO_TRIGSEL=1"/>
+#	 <flags   CPPDEFINES="EXCLUDE_TRAINER_FROM_SELECTION=1"/>
+	 <flags   CPPDEFINES="PU=1"/>
+	 <flags   CPPDEFINES="SF=1"/>
+#	 <flags   CPPDEFINES="JER=1"/>
+#	 <flags   CPPDEFINES="SYST=1"/>
+     	 <flags   CPPDEFINES="VERY_HIGH_MASS=1"/> 
+#	 <flags   CPPDEFINES="PU_ALEX=1"/>
+</bin>
+
+
+#<bin name="TripleBtagAnalysis_SignTempl"   file="TripleBtagAnalysis_SignTempl.cpp">
+##     	 <flags   CPPDEFINES="MEDIUM_MASS=1"/> 
+## 	 <flags   CPPDEFINES="RUNEVENTLUMI_LIST=1"/>
+# 	 <flags   CPPDEFINES="TRUNCATED=1"/>          
+#</bin>
+
+#<bin name="TripleBtagAnalysis_SignTempl_MEDIUM"   file="TripleBtagAnalysis_SignTempl.cpp">
+#     	 <flags   CPPDEFINES="MEDIUM_MASS=1"/> 
+## 	 <flags   CPPDEFINES="RUNEVENTLUMI_LIST=1"/>
+#	 <flags   CPPDEFINES="TRUNCATED=1"/>          
+#</bin>
+
+

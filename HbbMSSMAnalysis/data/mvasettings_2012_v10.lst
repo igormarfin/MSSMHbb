@@ -1,0 +1,35 @@
+# it's a comment
+# the format of the file:
+# 	 trainer of mva
+#	 do not put CUT<=val here, trainer can't be used for events selection!
+# Name:MethodName:FileInPath(path_to_file_xml):
+# 	 mva computer
+# Name:MethodName:FileInPath(path_to_weight_dir/MVACOMPUTER):CUT<=val
+#
+# _1_ _2_ etc are used in the names to save this unique order, 
+#  because the lines below are parsed and stored in std::maps which performs always sorting , i.e. Compare=Less<key>
+# 
+
+
+
+# it's a trainer to test input vars
+_0_BTD:BDT:Analysis/HbbMSSMAnalysis/data/treeBDT_2012_000001.xml:
+
+# it's a computer, to produce mva
+#_1_BDTComp:BDT:Analysis/HbbMSSMAnalysis/data/MVAWEIGHTS/BDT_2012_v4/weights/MVACOMPUTER:CUT<=10.0
+# it's a trainer, to collect mva
+#_2_BDT:BDT:Analysis/HbbMSSMAnalysis/data/treeBDT_2012_000002.xml:
+
+# it's a Likelihood computer, to produce mva
+#_3_BDTComp:Likelihood_000001:Analysis/HbbMSSMAnalysis/data/MVAWEIGHTS/BDT_2012_v4/weights/MVACOMPUTER:CUT<=10.0
+# it's a trainer, to collect mva
+#_4_BDT:Likelihood_000001:Analysis/HbbMSSMAnalysis/data/treeBDTSelTight_2012_000001.xml:
+
+
+# it's a computer+trainer to test mva selection 
+#_3_BDTCompTight:BDT:Analysis/HbbMSSMAnalysis/data/MVAWEIGHTS/BDT_2012_v4/weights/MVACOMPUTER:CUT<=0.0
+#_4_BDTSelTight:BDT:Analysis/HbbMSSMAnalysis/data/treeBDTSelTight_2012_000001.xml:
+
+
+# final computer
+

@@ -1,0 +1,6 @@
+
+--This line, and those below, will be ignored--
+
+AM   data/MyDataPileupHistogram_DiJet80Eta2p6_BTagIP3DFastPVLoose_600bins_true_190389-208686.root
+AM   data/MyDataPileupHistogram_L1DoubleJet36Central_600bins_true_190389-208686.root
+AM   data/MyDataPileupHistogram_DiJet40Eta2p6_BTagIP3DFastPV_600bins_true_190389-208686.root

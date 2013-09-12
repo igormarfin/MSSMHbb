@@ -1,0 +1,46 @@
+== Introduction ==
+
+''' @2012 I. Marfin '''   ''<Higgs DESY Group>''
+
+This is a small how-to which might be usefull to make plots of the variables stored in TTrees used for training.
+Some variables can be only spectators (not used in training)
+
+
+== Examples of plotTreeVariables.C running ==
+
+* To get different examples of running and some help:
+      grep usage plotTreeVariables.C
+
+* we want to plot all variables defined 'plot_mva_BDT.xml' after AdaBoost BDT selection ('KinVarsBDTSel').
+** All histograms must be drawn in 'Hist' format (Draw("hist")). First two files (Trees) are merged (as |0,1 option is present).
+** Plot histograms in absolute (non-unity) normalization (3rd argument is kFALSE)
+** Plot legends on different canvases, insert 'StandAloneLegend' in options
+** Plot histograms of files in a stack if their indexes (index of assigned root file) satisfy criteria "indx>-1"
+
+   root -l `ls the*bEnr*root` `ls the*SUSY*M-*root` 'plotTreeVariables.C("KinVarsBDTSel","plot_mva_BDT.xml",kFALSE,"Sumw2 StandAloneLegend| Hist |0,1","",kFALSE,"","indx>-1","")'
+
+** example of plot_mva_BDT.xml
+
+   <Variables NVar="13" TreeName="Plot">
+         <Variable VarIndex="0" Expression="Pt1"  Type="F" BINS="100"  MIN="0" MAX="200"/>
+         <Variable VarIndex="1" Expression="Pt2"  Type="F" BINS="100"  MIN="0" MAX="200"/>
+         <Variable VarIndex="2" Expression="Pt3"  Type="F" BINS="100"  MIN="0" MAX="200"/>
+         <Variable VarIndex="3" Expression="Pt1_b" Type="F" BINS="100" MIN="0" MAX="200"/>
+         <Variable VarIndex="4" Expression="Pt2_b"  Type="F" BINS="100"  MIN="0" MAX="200"/>
+         <Variable VarIndex="5" Expression="Pt3_b"  Type="F" BINS="100"  MIN="0" MAX="200"/>
+         <Variable VarIndex="6" Expression="M12"  Type="F" BINS="100"  MIN="0" MAX="500"/>
+         <Variable VarIndex="7" Expression="Eta1"  Type="F" BINS="100"  MIN="-3.5" MAX="3.5"/>
+         <Variable VarIndex="8" Expression="Eta2"  Type="F" BINS="100"  MIN="-3.5" MAX="3.5"/>
+         <Variable VarIndex="9" Expression="Eta3"  Type="F" BINS="100"  MIN="-3.5" MAX="3.5"/>
+         <Variable VarIndex="10" Expression="Eta1_b"  Type="F" BINS="100"  MIN="-3.5" MAX="3.5"/>
+         <Variable VarIndex="11" Expression="Eta2_b"  Type="F" BINS="100"  MIN="-3.5" MAX="3.5"/>
+         <Variable VarIndex="12" Expression="Eta3_b"  Type="F" BINS="100"  MIN="-3.5" MAX="3.5"/>
+  </Variables>
+
+*  we want to plot all variables and store histograms in output.root file
+   root -l `ls the*bEnr*root` `ls the*SUSY*M-*root` 'plotTreeVariables.C("KinVarsBDTSel","plot_mva_BDT.xml",kFALSE,"Sumw2 StandAloneLegend| Hist |0,1","",kFALSE,"","indx>-1","output.root")'
+ 
+== Contact ==
+
+Igor Marfin <'''Igor.Marfin@desy.de'''>
+

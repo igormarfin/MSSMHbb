@@ -1,0 +1,16 @@
+///BDT
+
+NTrees=1000
+BoostType=AdaBoost:AdaBoostBeta=0.3
+SeparationType=GiniIndex
+nCuts=20
+UseWeightedTrees=True
+
+////new
+//MaxDepth=100
+//PruneMethod=CostComplexity
+//PruneStrength=-1
+//PruningValFraction=0.5
+
+///No pruning
+PruneMethod=NoPruning

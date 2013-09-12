@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 115
+/reps/desycmshiggs/!svn/ver/485/HiggsToBBbar/trunk/Analysis/HbbMSSMAnalysis/data/MVAWEIGHTS/LikelihoodLoose/weights
+END
+MVACOMPUTER
+K 25
+svn:wc:ra_dav:version-url
+V 127
+/reps/desycmshiggs/!svn/ver/475/HiggsToBBbar/trunk/Analysis/HbbMSSMAnalysis/data/MVAWEIGHTS/LikelihoodLoose/weights/MVACOMPUTER
+END
+utils.sh
+K 25
+svn:wc:ra_dav:version-url
+V 124
+/reps/desycmshiggs/!svn/ver/475/HiggsToBBbar/trunk/Analysis/HbbMSSMAnalysis/data/MVAWEIGHTS/LikelihoodLoose/weights/utils.sh
+END
+TMVAClassification_Likelihood.class.C
+K 25
+svn:wc:ra_dav:version-url
+V 153
+/reps/desycmshiggs/!svn/ver/485/HiggsToBBbar/trunk/Analysis/HbbMSSMAnalysis/data/MVAWEIGHTS/LikelihoodLoose/weights/TMVAClassification_Likelihood.class.C
+END
+TMVAClassification_Likelihood.weights.xml
+K 25
+svn:wc:ra_dav:version-url
+V 157
+/reps/desycmshiggs/!svn/ver/485/HiggsToBBbar/trunk/Analysis/HbbMSSMAnalysis/data/MVAWEIGHTS/LikelihoodLoose/weights/TMVAClassification_Likelihood.weights.xml
+END

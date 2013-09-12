@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/reps/desycmshiggs/!svn/ver/475/HiggsToBBbar/trunk/Analysis/HbbMSSMAnalysis/data/MVAWEIGHTS/BDT/weights
+END
+TMVAClassification_BDT.class.C
+K 25
+svn:wc:ra_dav:version-url
+V 134
+/reps/desycmshiggs/!svn/ver/475/HiggsToBBbar/trunk/Analysis/HbbMSSMAnalysis/data/MVAWEIGHTS/BDT/weights/TMVAClassification_BDT.class.C
+END
+MVACOMPUTER
+K 25
+svn:wc:ra_dav:version-url
+V 115
+/reps/desycmshiggs/!svn/ver/475/HiggsToBBbar/trunk/Analysis/HbbMSSMAnalysis/data/MVAWEIGHTS/BDT/weights/MVACOMPUTER
+END
+TMVAClassification_BDT.weights.xml
+K 25
+svn:wc:ra_dav:version-url
+V 138
+/reps/desycmshiggs/!svn/ver/475/HiggsToBBbar/trunk/Analysis/HbbMSSMAnalysis/data/MVAWEIGHTS/BDT/weights/TMVAClassification_BDT.weights.xml
+END
+utils.sh
+K 25
+svn:wc:ra_dav:version-url
+V 112
+/reps/desycmshiggs/!svn/ver/475/HiggsToBBbar/trunk/Analysis/HbbMSSMAnalysis/data/MVAWEIGHTS/BDT/weights/utils.sh
+END

@@ -1,0 +1,68 @@
+== Introduction ==
+
+''' @2012 I. Marfin '''   ''<Higgs DESY Group>''
+
+
+PileUp ('''PU''') reweighting is described here
+[https://twiki.cern.ch/twiki/bin/view/CMS/PileupMCReweightingRecipe http://twiki.cern.ch/twiki/bin/view/CMS/PileupMCReweightingRecipe]
+and 
+here
+[https://twiki.cern.ch/twiki/bin/view/CMS/PileupReweighting https://twiki.cern.ch/twiki/bin/view/CMS/PileupReweighting]
+
+Currently, '''PU''' has been implemented in Analysis/HbbMSSMAnalysis/bin/'''TripleBtagAnalysis_MVA.cpp'''.
+'''PU''' is '''off'''.  The file 'pudist.root' is placed  Analysis/HbbMSSMAnalysis/data. 
+You have to copy  'pudist.root' to your working directory (where you are starting  '''TripleBtagAnalysis_MVA'''.cpp)
+
+
+
+== How is PU  realized? ==
+
+There is '''PileUpProducer'''.{h,cc} placed in Utilities/{interface,src} which performs calculation. 
+It requires 'pudist.root' file with ''<PU interaction>'' to be found in the current directory where you are running '''TripleBtagAnalysis_MVA'''.cpp
+
+All '''PU''' related code in '''TripleBtagAnalysis_MVA'''.cpp is placed in 'workaround' tags
+
+       ///_PU_BEGIN_
+         ...
+       ///_PU_END_
+
+The way of creation of '''PileUpProducer''' is 
+
+       PileUpProducer * _pileup=0;
+
+       ////Compute pileup reweighting
+       _pileup = new PileUpProducer("PUProducer","PUProducer","pudist.root","pileup");
+
+
+
+
+== How to switch  PU on? == 
+
+It depends on the way of running '''TripleBtagAnalysis_MVA'''.cpp
+
+* if you want to run binary built in Analysis/HbbMSSMAnalysis/bin, you have to uncomment flag '-DPU=1' in Analysis/HbbMSSMAnalysis/bin/BuildFile.xml
+        <bin name="TripleBtagAnalysis_MVA"   file="TripleBtagAnalysis_MVA.cpp">
+         <flags   CPPDEFINES="CMSSW_CPP=1"/>
+        #<flags   CPPDEFINES="PU=1"/>
+         </bin>
+
+* if you run script via
+       root -l  $CMSSW_BASE/src/Analysis/HbbMSSMAnalysis/bin/TripleBtagAnalysis_MVA.cpp+
+please insert in you rootlogon.C (there is an example in Analysis/HbbMSSMAnalysis/test)
+        gSystem->AddIncludePath("-DPU=1");
+
+
+=== How to work with data samples if I switch PU on  ? ===
+
+just move 'pudist.root' to another directory (or rename it). Then reweighting function will return '1' always.
+
+
+== Are there other versions of pudist.root file? ==
+
+please look at 
+[https://twiki.cern.ch/twiki/bin/viewauth/CMS/HamburgWikiAnalysisTop#2011_Data_and_JSON https://twiki.cern.ch/twiki/bin/viewauth/CMS/HamburgWikiAnalysisTop#2011_Data_and_JSON] 
+
+== Contact ==
+
+Igor Marfin <'''Igor.Marfin@desy.de'''>
+

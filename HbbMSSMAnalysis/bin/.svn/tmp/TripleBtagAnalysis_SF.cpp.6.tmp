@@ -1,0 +1,1609 @@
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <sstream>
+#include <algorithm>
+#include <exception>
+#include <math.h>
+
+#include <boost/filesystem.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ini_parser.hpp>
+
+#include "TCanvas.h"
+#include "TGraphErrors.h"
+#include "TMultiGraph.h"
+#include "TStyle.h"
+#include "TF1.h"
+#include "TH1F.h"
+#include "TH1D.h"
+#include "TH2.h"
+#include "TTree.h"
+#include "TChain.h"
+#include "TFileCollection.h"
+#include "TGraph2D.h"
+#include "TLatex.h"
+#include "TMarker.h"
+#include "TMath.h"
+#include "TFileInfo.h"
+#include "TVector2.h"
+
+#include "Analysis/HbbMSSMAnalysis/interface/TripleBtagAnalysis_SF.h"
+#include "Analysis/HbbMSSMAnalysis/interface/SystReadInput.h"
+#include "Analysis/HbbMSSMAnalysis/test/NegativeBTag.C"
+
+#include "Analysis/Utilities/interface/svMass.h"
+#include "Analysis/Utilities/interface/svMass2012.h"
+#include "Analysis/Utilities/interface/bTagEff.h"
+#include "Analysis/Utilities/interface/getHbbMetadata.h"
+#include "Analysis/Utilities/interface/checkHLTBTagMatch.h"
+#include "Analysis/Utilities/interface/HbbNtuple.h"
+#include "Analysis/Utilities/interface/HbbSelect.h"
+#include "Analysis/Utilities/interface/TriggerRunSelection.h"
+#include "Analysis/Utilities/interface/HbbSystControl.h"
+#include "Analysis/Utilities/interface/HbbTrigger.h"
+#include "Analysis/Utilities/interface/HbbTrigWeight.h"
+#include "Analysis/Utilities/interface/GeneralHistos.h"
+#include "Analysis/Utilities/interface/ConfigParser.h"
+#include "Analysis/Utilities/interface/BTag.h"
+#include "Analysis/Utilities/interface/BTagSF.h"
+#include "Analysis/Utilities/interface/JetFlavor.h"
+
+
+
+TCanvas* canvas = NULL;
+
+//... A snip of code has to be after all nonexecutable statements
+#include "Analysis/HbbMSSMAnalysis/interface/HbbPuritySet.cc"
+//..............................................................
+
+//void TripleBtagAnalysis_SF() {
+int main(int narg,char** varg) {
+  
+  if(narg != 3) { 
+    std::cout << "error: The name of a configuration and a default configuration file must be provided as command line options. The first parameter corresponds to the default.!" << std::endl;
+    throw std::exception();
+  }
+  const std::string configfilename = varg[2];
+  const std::string defaultconfig = varg[1];
+  const ConfigParser config(defaultconfig,configfilename);
+
+  // macro for analysis in channel with three btagged jets
+
+  canvas = new TCanvas ("cg1","mycanvas",10,10,800,600);
+  // open an ntuple file
+
+  //  bool _doOnlineRelBtag= false; ///true; ///to do OnlineRelBtag
+  const bool _doOnlineRelBtag= true; ///to do OnlineRelBtag
+  const bool _doBkgPred= false; ///true; ///to do Bkg prediction
+
+  const bool doLumiWeighting = true;  // weight MC events according to integrated lumi
+  const bool forceTripleOnlineBtagMatch = config.Get<bool>("TripleBtagAnalysis_SF_General.forceTripleOnlineBtagMatch");  // require triple online btag match on triple btag signature 
+
+  const unsigned int nSelJet = 3;   // number of jets considered in b(bb) final state
+
+ 
+
+  const bool doMVASel =  config.Get<bool>("TripleBtagAnalysis_SF_General.doMVASel");
+  const std::string MVAselFilename = config.Get<std::string>("TripleBtagAnalysis_SF_General.MVAselFilename");
+
+  if (doMVASel && !boost::filesystem::exists(MVAselFilename)) {
+    std::cout << "error: MVA selection tree file not found!" << std::endl;
+    throw std::exception();
+  }
+ 
+  std::cout << "MVA BG selection activation is " << doMVASel << std::endl;
+
+ 
+  
+  const std::string Scenario(config.Get<std::string>("TripleBtagAnalysis_SF_General.Scenario"));  // Higgs mass scenario // available: MediumMass2012, HighMass2012, VeryHighMass2012
+
+  // data/MC scale factor on b-tag efficiencies
+  BTagSF bTagSF;
+  const bool applyBTagSF = config.Get<bool>("TripleBtagAnalysis_SF_General.applyBTagSF");
+  if( applyBTagSF ) {
+    std::cout << "Applying data/MC scale factors on b-tag efficiencies" << std::endl;
+  }
+
+  const bool doJESVar = false;  // apply JES scaling variation (for evaluation of systematics)
+  bool doBtagSFVar_bc = false; // apply BtagSF variation for bc (for evaluation of systematics)
+  bool doBtagSFVar_q = false; // apply BtagSF variation for q (for evaluation of systematics)
+  double JESVar = 0;
+  double BtagSFVar = 0;
+  
+  //  bool doJERSF = true;  // apply jet energy resolution scaling factors 
+  const bool doJERSF = false;  // apply jet energy resolution scaling factors 
+  const bool doJERSFVar = false;  // apply jet energy resolution scaling variation (for evaluation of systematics)
+  double JERVar = 2;
+
+  // create systematics control object
+  HbbSystControl theSystControl;  // constructor does nothing
+
+  int systype=1;
+
+  SystReadInput(systype,BtagSFVar);
+
+  if (systype==2) doBtagSFVar_bc=true;
+  if (systype==3) doBtagSFVar_q=true;
+
+  // chain mode
+  TChain f("hbbanalysis/HBBTo4B");
+  const std::string mergelistfilename = "theMergeList.txt";
+  TFileCollection theFileColl("myNtFileCollection","",mergelistfilename.c_str());
+  if (!boost::filesystem::exists(mergelistfilename) || theFileColl.GetNFiles() <=0) {
+    std::cout << "Problem opening list of input files " << std::endl;
+    throw std::exception();
+    return 0;
+  }
+  TIter next( (TCollection*) theFileColl.GetList() );
+  TFileInfo* tfi = (TFileInfo*) next();
+  const TString firstFile( tfi->GetFirstUrl()->GetFile() );
+  
+  const bool _doMC = (firstFile.Contains("Run2011") || firstFile.Contains("Run2012")) ? false : true;
+  
+  if (!_doMC) {
+    std::cout << "Assume this is RealData" << std::endl;
+  } else {
+    std::cout << "Assume this is MonteCarlo" << std::endl;
+  }  
+  
+  const bool doTrigSelect = _doMC ? false : config.Get<bool>("TripleBtagAnalysis_SF_General.doTrigSelect");  // perform trigger selection according to scenario
+
+
+  // create the trigger filter list. Only histograms for these triggers will be created
+  std::vector<std::string> genericTriggerList;
+  std::vector<std::string> HLTBtagTriggerObjectList;
+  std::vector<std::string> L25BtagTriggerObjectList;
+  const std::vector<std::string> triggerFilterList = config.GetVec<std::string>("TripleBtagAnalysis_SF_Trigger.triggerFilterList");
+  const std::vector<std::string> HLTBtagTriggerObjectFilterList = config.GetVec<std::string>("TripleBtagAnalysis_SF_Trigger.HLTBtagTriggerObjectFilterList");
+  const std::vector<std::string> L25BtagTriggerObjectFilterList = config.GetVec<std::string>("TripleBtagAnalysis_SF_Trigger.L25BtagTriggerObjectFilterList");
+
+  // extract generic trigger list and number of input events from ntuple files
+  float lumiScaleFac = 1;
+<<<<<<< .mine
+  float xsect=0e0;
+  int myentries=getHbbMetadata(theFileColl,genericTriggerList,HLTBtagTriggerObjectList,1000.,lumiScaleFac,_doMC,xsect);
+=======
+  const int myentries=getHbbMetadata(theFileColl,genericTriggerList,HLTBtagTriggerObjectList,1000.,lumiScaleFac,_doMC);
+>>>>>>> .r3697
+  getHbbL25Metadata(theFileColl,L25BtagTriggerObjectList);
+
+  std::cout<<"# of entries given by etHbbMetadata"<<myentries<<std::endl; 
+
+  // this trigger weight array will be used later in each event
+  std::vector<float> triggerWeights(genericTriggerList.size(),1.);
+  
+  // create trigger weight helper object
+  HbbTrigWeight* theHbbTrigWeight = new HbbTrigWeight(genericTriggerList,triggerFilterList);
+
+  f.AddFileInfoList((TCollection*) theFileColl.GetList());
+  TTree* hbbtree = &f;
+
+
+  // create trigger run selection object
+  TriggerRunSelection trigSelector( Scenario, &genericTriggerList, _doMC );
+
+  TriggerRunSelection * ptrTrigSelector = & trigSelector;
+
+
+  checkHLTBtagMatch HLTBtagMatchObj(
+                                    triggerFilterList,
+                                    HLTBtagTriggerObjectFilterList,
+                                    HLTBtagTriggerObjectList,
+                                    doTrigSelect,
+                                    ptrTrigSelector
+                                    );
+
+
+  //add the information for the L25 objects
+  HLTBtagMatchObj.SetL25(L25BtagTriggerObjectFilterList,L25BtagTriggerObjectList);
+
+#include "Analysis/HbbMSSMAnalysis/interface/HbbPurityInit.cc"
+
+  // open seltree if needed
+
+  TTree* seltree = NULL;
+  TFile* seltreefile = NULL;
+  if ( doMVASel ) {
+    seltreefile = new TFile(TString(MVAselFilename.c_str()));
+    if (seltreefile == NULL) {
+      std::cout << "error: Opening of " << MVAselFilename.c_str() << " failed" << std::endl;
+      return 0;
+    }
+    seltree = (TTree*) seltreefile->Get("selTree");
+#include "Analysis/Utilities/interface/HbbSelect.cc"
+    std::cout << "opening MVA selection tree" << std::endl;
+  }
+  
+  //disable some of the tree branches
+  HbbNtuple::SetBranchStatus(hbbtree);
+
+
+  //kinematic analysis cuts
+  const double deltaEtaCut12 = config.GetScenario<double>(Scenario, "deltaEtaCut12");
+  const double maxEta = config.GetScenario<double>(Scenario, "maxEta");
+  const std::vector<double> jetPtMin = config.GetVecScenario<double>(Scenario, "jetPtMin");
+  if(jetPtMin.size() != nSelJet) {
+    std::cout << "error: the jet pt cuts for " << nSelJet << " jets have to be defined: jetPtMin.size() = " << jetPtMin.size() << std::endl;
+    throw std::exception();
+  }
+
+  std::cout << "applied Jet pt cuts: " << jetPtMin[0] << "  " 
+	    << jetPtMin[1] << "  " << jetPtMin[2] << std::endl;
+  std::cout << "eta cut = " << maxEta << std::endl;
+  std::cout << "delta eta cut = " << deltaEtaCut12 << std::endl;
+
+  const std::vector<double> jetPtMax(nSelJet,3500); // leading jet upper pt thresholds
+  
+  
+  // List of known jet-flavor codes
+  const std::vector<JetFlavor::Code> jetFlavorCodes  = JetFlavor::getList();  // the possible jet-flavor codes
+  const unsigned int                 nflav           = jetFlavorCodes.size(); // number of flavor codes
+
+  // List of flavor classes for double b-tag and triple-btag sample
+  std::vector<FlavorClass::Dijet>  flavorClassesDijet  = FlavorClass::getListDijet();
+  std::vector<FlavorClass::Jet3>   flavorClasses3rdJet = FlavorClass::getListJet3();
+  std::vector<FlavorClass::Trijet> flavorClassesTrijet = FlavorClass::getListTrijet();
+
+  // B-tag related configuration
+  const BTag::WPs     bTagWPs   = BTag::getList(config.GetVec<std::string>("Btagging.offlineTaggerList")); // the considered offline b-tag working points
+  const unsigned int  nbtag     = bTagWPs.size();        // number of offline b-tag working points
+  std::vector<double> bTagCuts;                          // the b-tag cut values for each working point
+  for(BTag::WPsIt it = bTagWPs.begin(); it != bTagWPs.end(); ++it) {
+    bTagCuts.push_back( BTag::cut( *it ) );
+  }
+  // std::cout << "b-tag working points:" << std::endl;
+  // for(BTag::WPsIt it = bTagWPs.begin(); it != bTagWPs.end(); ++it) {
+  //   std::cout << "  " << BTag::toString(*it) << " \tcut : " << BTag::cut(*it) << std::endl;
+  // }
+
+  // make pointers to appropriate btag discriminants
+  std::vector<float*> theBJetTag(nbtag,NULL);	// b-tag information in tree will be mapped to this array
+  for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+    BTag::Discriminant dscr = BTag::discriminant( bTagWPs.at(ibtag) );
+    if       ( dscr == BTag::TCHP  ) {
+      theBJetTag[ibtag] = tcHPBJetTag;
+    } else if( dscr == BTag::CSV   ) {
+      theBJetTag[ibtag] = combSVBJetTag;
+    } else if( dscr == BTag::SSVHP ) {
+      theBJetTag[ibtag] = svHPBJetTag;
+    } else {
+      std::cout << "unsupported btag discriminant " << BTag::toString(dscr) << std::endl;
+    }
+  }
+
+  const std::vector<bool> applyBBPurityCorr(nbtag,false);  // specify if bbPurity collection should be applied
+
+  
+  // Dimensions
+  const int ncateg = 3; // ranks of untagged jet
+  const int ncorr  = 2; // correction levels
+  const int ntpat  = 4; // trigger pattern (online btag). (0,1,2)=rank of non-btagged jet, 3=all combined
+
+ 
+  // create the btag efficiency objects
+  // offline btag object
+  bTagEff* bTagEffOffline = NULL;
+  bTagEff* bTagReleffOnline=NULL;
+
+  // open the SVMass template files
+  const TString SVMassFileName = config.GetScenario<std::string>(Scenario, "SVMassFileName");
+  const TString SVMassOnlineFileName = config.GetScenario<std::string>(Scenario, "SVMassOnlineFileName");
+  
+  bTagEffOffline= new bTagEff(config.GetScenario<std::string>(Scenario, "offlinebtagefficiencies"),"offline",jetFlavorCodes,bTagWPs);
+  bTagReleffOnline =  new bTagEff(config.GetScenario<std::string>(Scenario, "relativeonlinebtagefficiencies"),"online",jetFlavorCodes,bTagWPs);
+
+  ///2012	
+  svMass2012 * sv = new svMass2012(SVMassFileName);
+  svMass2012 * svOnline = new svMass2012(SVMassOnlineFileName);
+
+
+  // open the bbPurity correction functions
+  std::vector< std::vector<TF1*> > fbbfrac(nbtag); // [nbtag][ncateg]
+  TFile* bbPur = new TFile("/afs/naf.desy.de/user/r/rmankel/scratch/HbbPat/CMSSW_4_2_3_patch2/src/DesyHiggsAnalyses/HBBAnalyses/test/calib/bbPurity-csv-online.root");
+  for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+    fbbfrac.at(ibtag).resize(ncateg,NULL);
+    for (int icateg=0; icateg<ncateg; ++icateg) {
+      fbbfrac[ibtag][icateg] = static_cast<TF1*>( bbPur->Get( Form("fbbfrac-ww-%s-Cat%d",BTag::toString(bTagWPs.at(ibtag)).c_str(),icateg) ) );
+      if ( fbbfrac[ibtag][icateg] == NULL ) {
+	std::cout << "bbPur correction function not found for" << BTag::toString(bTagWPs.at(ibtag)) << " categ " << icateg << std::endl;
+	if( applyBBPurityCorr.at(ibtag) ) return 0;
+      }
+    }
+  }
+
+
+
+  // create the Root output file
+  hout = new TFile("TripleBtagAnalysis.root","recreate");
+
+  TH1::AddDirectory(true);
+  TH1::SetDefaultSumw2();
+  TH2::SetDefaultSumw2();  // not really needed (we inherit from TH1)
+
+  Int_t nentries = (Int_t) hbbtree->GetEntries();
+  std::cout << "Number of events in ntuple: " << nentries << std::endl;
+
+#include "Analysis/Utilities/interface/HbbNtuple.cc"
+#include "Analysis/HbbMSSMAnalysis/interface/HbbPurityBook.cc"
+
+  // book the general histograms (before btag selection)
+
+  hout->mkdir("general");
+  hout->cd("general");
+
+
+  //book general histograms
+  GeneralHistos GH(hout,genericTriggerList,triggerFilterList,HLTBtagMatchObj);
+  
+  std::cout << "prepareHistograms()" << std::endl;
+  prepareHistograms(genericTriggerList, triggerFilterList, jetFlavorCodes, bTagWPs, nSelJet, flavorClassesDijet, flavorClasses3rdJet, flavorClassesTrijet, ncorr, ncateg, ntpat, _doMC);
+  std::cout << "done prepareHistograms()" << std::endl;
+  //check MVA tree
+  if ( doMVASel ) {
+    if(seltree->GetEntries() != nentries) {
+      std::cout << "MVASel: number of entries mismatch: " << seltree->GetEntries() << " " << nentries << std::endl;
+      return 0;
+    }
+  }
+
+  std::cout<<"before loop, the # of entries is "<<nentries<<std::endl;
+  // loop over the tree
+  for (Int_t iE=0; iE<nentries; iE++) {
+    hbbtree->GetEntry(iE);
+     
+    if(iE % 200000 == 0)
+      {
+        const double percent = 100.0*(double)iE/((double)nentries);
+        std::cout << "process event " << iE << " - " << percent << " % done." << std::endl;
+      }
+    
+    if ( doMVASel ) {
+      seltree->GetEntry(iE);
+      if ( (selRun != run) || (selEvent != event)) {
+	std::cout << " MVASel: synchronization mismatch "
+		  << " run/event= " << run << " / " << event
+		  << " selRun/selEvent= " << selRun << " / " << selEvent
+		  << std::endl;
+	return 0;
+      }
+      if (! (selPass)) continue;
+    }
+    
+    nJetA->fill(trgAccept,float(numberOfJets),1);
+
+    std::vector<double> theBtagSF(nbtag,1.0); //matthias: don't undertand why this has to be an array / vector and where it is used; will check this in next iteration
+    if (doJESVar) theSystControl(0, JESVar, -1, -1, 0., 0., theBtagSF.front());  // no SF returned
+    
+    // perform JER scaling and variation if switched on
+    double theJERSF = 1.0;
+    if ( doJERSF && ! doJERSFVar )    theSystControl(4, 0, -1, -1, 0., 0., theJERSF);  // no SF returned
+    if ( doJERSFVar )                 theSystControl(4, JERVar, -1, -1, 0., 0., theJERSF);  // no SF returned
+
+
+
+
+    // trigger selection
+    unsigned trgSelect = trgAccept;
+    if (doTrigSelect) trgSelect = trgAccept & trigSelector.mask( run );
+
+
+    // compute the weight for this event
+    float weight = 1;
+    if ( _doMC && doLumiWeighting )  weight = lumiScaleFac;
+
+
+
+
+
+
+    //check the distributions of L3 objects
+    for (int iJet=0; iJet < l3NumberOfBJets; ++iJet) {
+
+      std::string theTrigNameBtag;
+      theTrigNameBtag.assign("HLT_DiJet40Eta2p6_BTagIP3DFastPV_v");
+
+
+      std::vector<std::string>::iterator tSlotBtag = std::find(genericTriggerList.begin(), genericTriggerList.end(), theTrigNameBtag);
+      if (tSlotBtag != genericTriggerList.end()) {
+        //std::cout << "Btag trigger found at slot " << tSlotBtag - genericTriggerList.begin() << std::endl;
+      } else {
+        std::cout << "Btag trigger not found in any slot" << std::endl;
+        return 0;
+      }
+      unsigned int tNumberBtag = tSlotBtag - genericTriggerList.begin();
+
+
+      //ask for dijet monitoring trigger
+      if(trgAccept & (1<<tNumberBtag)) {
+
+        hptL3Objects_btagtrigger->Fill(l3PtBJet[iJet],weight);
+
+         
+        double mindeltaR = 1000.0;
+
+        for (int iJetL2=0; iJetL2 < l2NumberOfJets; ++iJetL2) {
+          const double deltaR =  CalculateDeltaR(l2PhiJet[iJetL2],l3PhiBJet[iJet],l2EtaJet[iJetL2],l3EtaBJet[iJet]);
+          if(deltaR < mindeltaR) {
+            mindeltaR = deltaR;
+          }
+        }
+        if(mindeltaR < 0.5)
+          hptL3Objects_matchedtoL2_btagtrigger->Fill(l3PtBJet[iJet],weight);
+        h_distance_L3Objects_vs_L2Objects_btagtrigger->Fill(mindeltaR,weight);
+      }    
+    }
+       
+    //end of check L3 object distributions
+
+
+    //general jet histograms
+    // fill general jet histograms 
+    // do jet selection with various pt cut scenarios according to trigger
+
+    GH.Fill(
+            trgSelect,
+            maxEta,
+            deltaEtaCut12,
+            jetPtMax,
+            forceTripleOnlineBtagMatch,
+            weight
+            );
+      
+    //end of general jet histograms
+
+    
+    // find set of selected jets
+    unsigned int nJet = 0;
+    std::vector<unsigned int> selJets;
+    // loop over the jets
+    for (unsigned int iJet=0; iJet<static_cast<unsigned int>(numberOfJets); ++iJet) {
+      if (nJet >= nSelJet) break;
+      if (! (fabs(etaJet[iJet])<maxEta) ) continue;
+
+      if (! (numberOfConstituentsInJet[iJet] > 1) ) continue;
+      if(!puJetIDLoose[iJet]) continue;
+      if(!jetIDLoose[iJet] ) continue;
+      if ( (ptJet[iJet] > jetPtMin[nJet]) && (ptJet[iJet] < jetPtMax[nJet]) ) {
+	selJets.push_back(iJet);
+	++nJet;
+      }
+    }
+
+    if (nJet < nSelJet) continue;
+
+    // Check for deltaR and deltaEta separation of selected jets
+    double deltaR12 = -1.0f;
+    double deltaR23 = -1.0f;
+    double deltaR13 = -1.0f;
+ 
+    double deltaEta = 9999.0; //between leading jets
+  
+    deltaR12 = CalculateDeltaR (phiJet[selJets.at(1)],phiJet[selJets.at(0)],etaJet[selJets.at(0)],etaJet[selJets.at(1)]);
+    deltaEta = TMath::Abs(etaJet[selJets.at(1)] - etaJet[selJets.at(0)]);
+    
+    deltaR13 = CalculateDeltaR (phiJet[selJets.at(0)],phiJet[selJets.at(2)],etaJet[selJets.at(0)],etaJet[selJets.at(2)]);
+    deltaR23 = CalculateDeltaR (phiJet[selJets.at(1)],phiJet[selJets.at(2)],etaJet[selJets.at(1)],etaJet[selJets.at(2)]);
+    
+    if ( !(deltaR12 > 1.0 && deltaR23 > 1.0 && deltaR13 > 1.0 && deltaEta < deltaEtaCut12) ) continue;
+
+#include "Analysis/HbbMSSMAnalysis/interface/HbbPurityFill.cc"
+
+   
+    // check the matching flags
+    int mJet = 0;
+    int matchPat = 0;
+    for (int iJet=0; iJet<numberOfJets; ++iJet) {
+      if (! (ptJet[iJet] > 15) ) continue; //FIXME: why 15 and not 20?
+      if (! (fabs(etaJet[iJet])<maxEta) ) continue;
+      if (! (numberOfConstituentsInJet[iJet] > 1) ) continue;
+      //FIXME: add loose pu jet id and jet id loose?
+      if (HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[iJet],isJetWithL25JetBitPattern[iJet],run)) {
+	matchPat = matchPat | (1<<mJet);
+      }
+      ++mJet;
+    }
+    matchPatternA->fill(trgSelect,matchPat);
+
+
+
+    bool tripleOnlineBtagMatchOK = true;
+    if (forceTripleOnlineBtagMatch) {
+      tripleOnlineBtagMatchOK = false;
+      if (nJet>=nSelJet ) {
+	tripleOnlineBtagMatchOK = (HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[selJets.at(0)],isJetWithL25JetBitPattern[selJets.at(0)],run) && HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[selJets.at(1)],isJetWithL25JetBitPattern[selJets.at(1)],run))
+	  || (HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[selJets.at(0)],isJetWithL25JetBitPattern[selJets.at(0)],run) && HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[selJets.at(2)],isJetWithL25JetBitPattern[selJets.at(2)],run))
+	  || (HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[selJets.at(1)],isJetWithL25JetBitPattern[selJets.at(0)],run) && HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[selJets.at(2)],isJetWithL25JetBitPattern[selJets.at(2)],run));
+      }
+    }
+
+    
+    if ( (nJet>=nSelJet) && tripleOnlineBtagMatchOK ) {
+      deltaR12 = CalculateDeltaR(phiJet[selJets.at(1)],phiJet[selJets.at(0)],etaJet[selJets.at(1)],etaJet[selJets.at(0)]);
+      const double dphij =TVector2::Phi_mpi_pi(phiJet[selJets.at(1)]-phiJet[selJets.at(0)]);
+      dPhiJet1Jet2A->fill(trgSelect,dphij,weight);
+      deltaEta = TMath::Abs(etaJet[selJets.at(1)] - etaJet[selJets.at(0)]);
+    }
+
+    if(nJet >= 3)
+      {
+        deltaR13 = CalculateDeltaR(phiJet[selJets.at(2)],phiJet[selJets.at(0)],etaJet[selJets.at(2)],etaJet[selJets.at(0)]);
+        deltaR23 = CalculateDeltaR(phiJet[selJets.at(1)],phiJet[selJets.at(2)],etaJet[selJets.at(1)],etaJet[selJets.at(2)]);
+      }
+    
+    // determine jet flavor from MC info
+    JetFlavor::Codes selJetsFlav(nSelJet,JetFlavor::UNDEFINED);
+    for (unsigned int iJ=0; iJ<nSelJet; ++iJ) {
+      selJetsFlav[iJ] = JetFlavor::code(selJets[iJ]);
+    }
+
+    // determine the dijet flavor code for the first two leading jets
+    //    cout<<"Before first diJetCode"<<endl;
+    int theFcDijet = JetFlavor::diJetCode( selJets[0], selJets[1] );
+
+    // now combine with flavor of third jet
+    int theFc3rd = selJetsFlav[2];
+    int theFc = flavorClassesDijet.size() * theFc3rd + theFcDijet;
+
+    // now make the triplet code
+    int theFcTrip = -1;
+    switch (theFcDijet) {
+    case 0:  // (bb)
+      switch (theFc3rd) {
+      case 2: // bbb
+	theFcTrip = 0;
+	break;
+      case 1: // bbc
+	theFcTrip = 1;
+	break;
+      case 0: // bbq
+	theFcTrip = 2;
+	break;
+      default:
+        //	std::cout << "Bad 3rd flavor code " << theFcDijet << " " << theFc3rd << std::endl;
+        break;
+
+      }
+      break;
+    case 1:  // (bc)
+      switch (theFc3rd) {
+      case 2: // bcb
+	theFcTrip = 3;
+	break;
+      case 1:
+      case 0:
+	theFcTrip = 5; // non-bb
+	break;
+      default:
+        //	std::cout << "Bad 3rd flavor code " << theFcDijet << " " << theFc3rd << std::endl;
+        break;
+
+      }
+      break;
+    case 2:  // (bq)
+      switch (theFc3rd) {
+      case 2: // bqb
+	theFcTrip = 4;
+	break;
+      case 1:
+      case 0:
+	theFcTrip = 5; // non-bb
+	break;
+      }
+      break;
+    case 3:
+    case 4:
+    case 5:
+      theFcTrip = 5; // non-bb
+      break;
+    default:
+      //       std::cout<<"theFcTrip="<<theFcTrip<<std::endl;
+      //      std::cout << "Bad flavor codes " << theFcDijet << " " << theFc3rd << std::endl;
+      break;
+    }
+
+    hfctrip->Fill(theFcTrip,weight);
+
+    // determine the svMass and svMassIndex
+
+    ///FIX is svMassIndex  correct?!
+
+
+    float svMassIndex[nSelJet];
+    for (unsigned int iJ=0; iJ<nSelJet; ++iJ) {
+      svMassA[iJ]->fill(trgSelect,svMassJet[selJets.at(iJ)],weight);
+      for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+	// svMass under offline btag
+	if( theBJetTag[ibtag][selJets[iJ]] > bTagCuts.at(ibtag) ) {
+	  svMassBtA[ibtag][iJ]->fill(trgSelect,svMassJet[selJets[iJ]],weight);
+	}
+      }
+      svMassIndex[iJ] = sv->getBinFromSvMass( svMassJet[selJets.at(iJ)] );
+    }
+    
+    // compute invariant mass of two leading jets, and event btag
+    if ( (nJet>=nSelJet) && deltaR12 > 1.0 && deltaR23 > 1.0 && deltaR13 > 1.0 && (deltaEta < deltaEtaCut12) && tripleOnlineBtagMatchOK ) {
+      float energyTot = energyJet[selJets.at(0)] + energyJet[selJets.at(1)];
+      float pxTot = pxJet[selJets.at(0)] + pxJet[selJets.at(1)];
+      float pyTot = pyJet[selJets.at(0)] + pyJet[selJets.at(1)];
+      float pzTot = pzJet[selJets.at(0)] + pzJet[selJets.at(1)];
+      
+      float dijet_mass_sq = energyTot * energyTot - pxTot * pxTot - pyTot * pyTot - pzTot * pzTot;
+
+      if (dijet_mass_sq >= 0) {
+	float dijet_mass = sqrt( dijet_mass_sq );
+
+	// fill the triple-btag histograms
+	for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+	  if ( ( theBJetTag[ibtag][selJets[0]] > bTagCuts.at(ibtag) )
+	       && 
+	       ( theBJetTag[ibtag][selJets[1]] > bTagCuts.at(ibtag) )
+	       && 
+	       ( theBJetTag[ibtag][selJets[2]] > bTagCuts.at(ibtag) ) ) {
+	    if (ibtag == 0) nJetPostselA->fill(trgAccept,float(numberOfJets),1);
+	    mDijetBtA[ibtag]->fill(trgSelect,dijet_mass,weight);
+	    // triple-jet specific flavor code histograms
+	    if (theFcTrip>=0) mDijetFcBtA[ibtag][theFcTrip]->fill(trgSelect,dijet_mass,weight);
+	    // fc counting
+	    hfc[ibtag]->Fill( theFc,weight );
+	    if ( (dijet_mass > 100) && (dijet_mass < 140 ) ) hfcm[ibtag]->Fill( theFc,weight );
+	    for (unsigned int iJ=0; iJ<nSelJet; ++iJ) {
+	      ptJetBtA[ibtag][iJ]->fill(trgSelect,ptJet[selJets.at(iJ)],weight);
+	      if (theFcTrip>=0) ptJetFcBtA[ibtag][theFcTrip][iJ]->fill(trgSelect,ptJet[selJets.at(iJ)],weight);
+	    }
+	    // tpat counting
+	    int theTpat = 4 * int(HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[selJets.at(2)],isJetWithL25JetBitPattern[selJets.at(2)],run)) + 2 * int(HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[selJets.at(1)],isJetWithL25JetBitPattern[selJets.at(1)],run))
+	      + int(HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[selJets.at(0)],isJetWithL25JetBitPattern[selJets.at(0)],run));
+	    atpattripall[ibtag]->fill(trgSelect,float(theTpat),weight);
+	  }
+
+
+          //std::cout<<"after dijetmass"<<std::endl;
+
+	  if (_doMC) {
+	    //// matthias: behaviour of bTagEff::eff not well defined for case of undefined jet flavor
+
+	    // // now do the same without btag cut and with weighting
+	    // double wbt[nSelJet];
+	    // for (unsigned int iJ=0; iJ<nSelJet; ++iJ) {
+	    //   wbt[iJ] = bTagEffOffline->eff(selJetsFlav.at(iJ),bTagWPs.at(ibtag),ptJet[selJets.at(iJ)],etaJet[selJets.at(iJ)]);
+	    // }
+	    // double wtot = weight * wbt[0] * wbt[1] * wbt[2];
+	    // mDijetBtwA[ibtag]->fill(trgSelect,dijet_mass,wtot);
+	    // // triple-jet specific flavor code histograms
+	    // if (theFcTrip>=0) mDijetFcBtwA[ibtag][theFcTrip]->fill(trgSelect,dijet_mass,wtot);
+	    // // fc counting
+	    // hfcww[ibtag]->Fill( theFc,wtot );
+	    // if ( (dijet_mass > 100) && (dijet_mass < 140 ) ) hfcmww[ibtag]->Fill( theFc,wtot );
+	    // for (unsigned int iJ=0; iJ<nSelJet; ++iJ) {
+	    //   ptJetBtwA[ibtag][iJ]->fill(trgSelect,ptJet[selJets.at(iJ)],wtot);
+	    //   if (theFcTrip>=0) ptJetFcBtwA[ibtag][theFcTrip][iJ]->fill(trgSelect,ptJet[selJets.at(iJ)],wtot);
+	    // }
+	    // // fill also the deltaPhi histograms
+	    // // determine the deltaPhi
+	    // const float dPhiJet1Jet3 = TVector2::Phi_mpi_pi(phiJet[selJets.at(0)] - phiJet[selJets.at(2)]);
+	    // const float dPhiJet2Jet3 = TVector2::Phi_mpi_pi(phiJet[selJets.at(1)] - phiJet[selJets.at(2)]);
+	    // dPhiJet1Jet3BtwA[ibtag]->fill(trgSelect,dPhiJet1Jet3,wtot);
+	    // dPhiJet2Jet3BtwA[ibtag]->fill(trgSelect,dPhiJet2Jet3,wtot);
+	  } ///_domC
+	} ///ibtag
+
+	// compute the event btag
+	float svMassJets[3];
+	for (unsigned int iJ=0; iJ<nSelJet; ++iJ) {
+	  svMassJets[iJ] = svMassJet[selJets.at(iJ)];
+	  if (svMassJets[iJ]<=0) svMassJets[iJ] = 0.01;
+	  if (svMassJets[iJ]>=6) svMassJets[iJ] = 5.99;
+	}
+	int nEvBTag = sv->eventXBTag(svMassJets);
+
+	// fill the event btag and 2D histograms (triple btag)
+	for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+	  if ( ( theBJetTag[ibtag][selJets[0]] > bTagCuts.at(ibtag) )
+	       &&
+	       ( theBJetTag[ibtag][selJets[1]] > bTagCuts.at(ibtag) )
+	       &&
+	       ( theBJetTag[ibtag][selJets[2]] > bTagCuts.at(ibtag) ) ) {
+	    evBtagBtA[ibtag]->fill(trgSelect,nEvBTag,weight);
+	    massEvBtagBtA[ibtag]->fill(trgSelect,dijet_mass,float(nEvBTag),weight);
+	  }
+	}
+
+	// in case of MC, compute trigger-weighted 2D histograms
+	if (_doMC) {
+	  std::vector<float> thePt(nSelJet,-99999.);
+	  std::vector<float> theEta(nSelJet,-99999.);
+	  for (unsigned int iJ=0; iJ<nSelJet; ++iJ) {
+	    thePt[iJ] = ptJet[selJets.at(iJ)];
+	    theEta[iJ] = etaJet[selJets.at(iJ)];
+	  }
+
+	  for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+	    if ( ( theBJetTag[ibtag][selJets[0]] > bTagCuts.at(ibtag) ) 
+		 && 
+		 ( theBJetTag[ibtag][selJets[1]] > bTagCuts.at(ibtag) )
+		 &&
+		 ( theBJetTag[ibtag][selJets[2]] > bTagCuts.at(ibtag) ) ) {
+	      for (unsigned int ib=0; ib<genericTriggerList.size(); ++ib) {
+		triggerWeights[ib] = 0;
+	      }
+	      theHbbTrigWeight->getTrigWeight(bTagReleffOnline,bTagWPs.at(ibtag),
+					      selJetsFlav,thePt,theEta,triggerWeights);
+	      
+	      // fill with trigger weights
+	      massEvBtagBtTWA[ibtag]->fillTW(dijet_mass,float(nEvBTag),triggerWeights,weight);
+
+	      // monitor L1L2-only efficiency
+	      theHbbTrigWeight->getTrigWeightL1L2Only(bTagReleffOnline,bTagWPs.at(ibtag),
+						      selJetsFlav,thePt,theEta,triggerWeights);
+	      triggerWeightA->fillMonitor(triggerWeights,1);
+	    }
+	  }
+	}
+
+        //			std::cout<<"bkg templ"<<std::endl;
+
+	// background templates
+	for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+	  // set category membership for this btag selection
+	  bool lcateg[3] = {false, false, false};
+	  int firstB[ncateg] = { 1, 0, 0 };  // to address b jets in double btag in pt ordered way
+	  int secondB[ncateg] = { 2, 2, 1 };
+	  int* theB[2];
+	  theB[0] = firstB;
+	  theB[1] = secondB;
+	  if ( ( theBJetTag[ibtag][selJets[1]] > bTagCuts.at(ibtag) )
+	       &&
+	       ( theBJetTag[ibtag][selJets[2]] > bTagCuts.at(ibtag) ) ) {
+	    lcateg[0] = true;
+	  }
+	  if ( ( theBJetTag[ibtag][selJets[0]] > bTagCuts.at(ibtag) )
+	       &&
+	       ( theBJetTag[ibtag][selJets[2]] > bTagCuts.at(ibtag) ) ) {
+	    lcateg[1] = true;
+	  }
+	  if ( ( theBJetTag[ibtag][selJets[0]] > bTagCuts.at(ibtag) )
+	       &&
+	       ( theBJetTag[ibtag][selJets[1]] > bTagCuts.at(ibtag) ) ) {
+	    lcateg[2] = true;
+	  };
+	  // determine the online btag pattern
+	  int theTpat = 4 * int(HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[selJets.at(2)],isJetWithL25JetBitPattern[selJets.at(2)],run)) + 2 * int(HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[selJets.at(1)],isJetWithL25JetBitPattern[selJets.at(1)],run))
+	    + int(HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[selJets.at(0)],isJetWithL25JetBitPattern[selJets.at(0)],run));
+	  for (int icateg=0; icateg<ncateg; ++icateg) {
+	    if (lcateg[icateg]) tpatA[ibtag][icateg]->fill(trgSelect,float(theTpat),weight);
+	  }
+	  // for cases with double online btag, we define the itpat
+	  int thisTpat = -1;
+	  switch (theTpat) {
+	  case 3:
+	    thisTpat = 2; // TTx
+	    break;
+	  case 5:
+	    thisTpat = 1; // TxT
+	    break;
+	  case 6:
+	    thisTpat = 0; // xTT
+	    break;
+	  case 7:
+	    thisTpat = 3; // TTT
+	    break;
+	  }
+
+	  tpatAllA[ibtag]->fill(trgSelect,float(theTpat),weight);
+
+
+          //std::cout<<"Before iflav"<<endl;
+	  // fill the templates
+	  for (unsigned int iflav=0; iflav<nflav; ++iflav) {
+	    for (int icateg=0; icateg<ncateg; ++icateg) {
+	      if (thisTpat == icateg || thisTpat == 3) {  // online btag pattern must match offline
+		if (lcateg[icateg]) {
+		  //// matthias: started to separate sf and syst uncertainties;
+		  //// this part is work in progress
+		  //// the old code
+		  // double theSF = 1;
+		  // if (doBtagSFVar_bc && (iflav >= 1)) {
+                  //   theSystControl(2,BtagSFVar,ibtag,iflav,ptJet[selJets.at(icateg)],etaJet[selJets.at(icateg)],theSF);
+		  // } else if (doBtagSFVar_q && (iflav ==0)) {
+		  //   theSystControl(3,BtagSFVar,ibtag,iflav,ptJet[selJets.at(icateg)],etaJet[selJets.at(icateg)],theSF);
+		  // } else if (applyBTagSF) {
+		  //   theSystControl(1,        0,ibtag,iflav,ptJet[selJets.at(icateg)],etaJet[selJets.at(icateg)],theSF);
+		  // }
+		  // float mistagWeight = bTagEffOffline->eff(jetFlavorCodes.at(iflav),bTagWPs.at(ibtag),ptJet[selJets.at(icateg)],etaJet[selJets.at(icateg)]) * theSF;
+		  // float errorMistagWeight = bTagEffOffline->erreff(jetFlavorCodes.at(iflav),bTagWPs.at(ibtag),ptJet[selJets.at(icateg)],etaJet[selJets.at(icateg)]) * theSF;
+
+		  //// the new code (needs systematic variation)
+
+		  // obtain the mistag weights, i.e. the probability to b-tag
+		  // the non-b-tagged jet assuming it is of a certain flavor
+		  
+		  // possible data/MC scale factor for the b-tag efficiency
+		  double theBTagSF = 1.;
+		  if( applyBTagSF ) {
+		    theBTagSF = bTagSF(ptJet[selJets.at(icateg)],etaJet[selJets.at(icateg)],jetFlavorCodes.at(iflav),bTagWPs.at(ibtag));
+		  }
+
+		  // the mistag weights
+		  const float mistagWeight = bTagEffOffline->eff(jetFlavorCodes.at(iflav),bTagWPs.at(ibtag),ptJet[selJets.at(icateg)],etaJet[selJets.at(icateg)]) * theBTagSF;
+		  const float errorMistagWeight = bTagEffOffline->erreff(jetFlavorCodes.at(iflav),bTagWPs.at(ibtag),ptJet[selJets.at(icateg)],etaJet[selJets.at(icateg)]) * theBTagSF;
+
+		  
+		  // fill the mass templates
+		  for (int icorr=0; icorr<ncorr; ++icorr) {
+		    double wbbpur = 1;
+		    if (applyBBPurityCorr[ibtag] && (icorr == 1)) wbbpur =  fbbfrac[ibtag][icateg]->Eval( dijet_mass );
+		    for (int itpat=0; itpat<3; ++itpat) {
+		      double wtpat = 1;
+			
+			
+                      //			std::cout<<"_doOnlineRelBtag"<<std::endl;
+                      //			std::cout<<"icor "<<icorr<<std::endl;
+                      //			std::cout<<"iflav "<<iflav<<std::endl;
+
+                      if (_doOnlineRelBtag)
+                        if ( (itpat != icateg) && thisTpat != 3) {  // weight correction if offline & online btag pattern are different (except TTT)
+                          if (bTagReleffOnline->eff(jetFlavorCodes.at(iflav),bTagWPs.at(ibtag),ptJet[selJets.at(icateg)],etaJet[selJets.at(icateg)]) == 0) {       
+                            std::cout << "call eff icateg=" << icateg << " ptJet=" << ptJet[selJets.at(icateg)] 
+                                      << " etaJet=" << etaJet[selJets.at(icateg)] << std::endl;
+                          }
+                          if (bTagReleffOnline->eff(JetFlavor::B,bTagWPs.at(ibtag),ptJet[selJets.at(itpat)],etaJet[selJets.at(itpat)]) == 0) {
+                            std::cout << "call eff  itpat=" << itpat <<  " ptJet=" << ptJet[selJets.at(itpat)] 
+                                      << " etaJet=" << etaJet[selJets.at(itpat)] << std::endl;
+                          }
+		      
+                          wtpat = bTagReleffOnline->eff(jetFlavorCodes.at(iflav),bTagWPs.at(ibtag),ptJet[selJets.at(icateg)],etaJet[selJets.at(icateg)])
+                            / bTagReleffOnline->eff(JetFlavor::B,bTagWPs.at(ibtag),ptJet[selJets.at(itpat)],etaJet[selJets.at(itpat)]);
+                        }
+                      //			std::cout<<"wtpat "<<wtpat<<std::endl;
+                      //			std::cout<<"wbbpur "<<wbbpur<<std::endl;
+
+                      //			 if (iflav>2)	cout<<"iflav="<<iflav<<endl;
+		      massTemplateA[iflav][ibtag][icateg][icorr][itpat]->fill(trgSelect,dijet_mass,weight * mistagWeight * wbbpur * wtpat);
+
+		      // fill the predictions
+                      if (_doBkgPred)
+                        if (icorr == 1) {
+                          float theFlavFrac[3] = { .95, .03, .02 };  // replace by actual numbers
+                          massPred[iflav][ibtag][icateg][itpat]->fill(trgSelect,dijet_mass,weight * mistagWeight * theFlavFrac[iflav] * wtpat);
+                        }
+
+
+                      ///FIX EvtBtag!!!
+                      double mistagSV=iflav;
+                      //	if (mistagSV>2) mistagSV-=2;
+
+		      // event btag templates (no purity correction yet)
+		      if (icorr == 1) {
+			// get the svMassIndex probability vector for jet "categ", flavor=iflav
+
+			float probSvMassIndexOfflineIflav[3]; /// FIX change to 5?!
+			sv->getSVbins(mistagSV,ibtag,ptJet[selJets.at(icateg)],fabs(etaJet[selJets.at(icateg)]),probSvMassIndexOfflineIflav);
+			float probSvMassIndexOnlineIflav[3]; /// FIX change to 5?!
+			svOnline->getSVbins(mistagSV,ibtag,ptJet[selJets.at(icateg)],fabs(etaJet[selJets.at(icateg)]),probSvMassIndexOnlineIflav);
+			    
+			// same for jet "itpat", flavor=b
+			float probSvMassIndexOfflineB[3]; 
+			sv->getSVbins(2,ibtag,ptJet[selJets.at(itpat)],fabs(etaJet[selJets.at(itpat)]),probSvMassIndexOfflineB);
+			float probSvMassIndexOnlineB[3]; 
+			svOnline->getSVbins(2,ibtag,ptJet[selJets.at(itpat)],fabs(etaJet[selJets.at(itpat)]),probSvMassIndexOnlineB);
+
+                        //cout<<"svMassIndexOfTemplate"<<endl;
+
+			for (int iSvM=0; iSvM<3; ++iSvM) {  // loop over possible svMassIndex values
+			  int svMassIndexOfTemplate[nSelJet];
+			  for (unsigned int iJ=0; iJ<nSelJet; ++iJ) {
+			    if (static_cast<int>(iJ) == icateg) {
+			      svMassIndexOfTemplate[iJ] = iSvM;
+			    } else {
+			      svMassIndexOfTemplate[iJ] = svMassIndex[iJ]; // copy 
+			    }
+			  }
+
+
+			  // make event btag
+			  int evtBTag = sv->eventBTag( svMassIndexOfTemplate );
+
+                          //			std::cout<<"Get evtBTag"<<std::endl;
+			  // extra weight according to online btag pattern
+			  float wtpatEvtBtag = 1;
+			  float wtpatEvtBtagSum = 0;
+			  if ( (itpat != icateg) && thisTpat != 3) {  // weight correction if offline & online btag pattern are different (except TTT)
+			    if ( probSvMassIndexOnlineB[iSvM] > 0) {
+			      // to model this background, the untagged jet must take the role of an online btagged jet
+			      // plus, correct for the fact that one b jet is no longer online btagged
+			      wtpatEvtBtag = probSvMassIndexOnlineIflav[iSvM] *  probSvMassIndexOfflineB[iSvM] / probSvMassIndexOnlineB[iSvM];
+			    } else {
+			      wtpatEvtBtag = probSvMassIndexOnlineIflav[iSvM]; // omit second correction if we would divide by zero
+			    }
+
+
+			  } else {
+			    wtpatEvtBtag = probSvMassIndexOfflineIflav[iSvM]; // simplest case: jet is not biased by online btag
+                                                                            // this also includes the borderline case of three online btags
+			  }
+			  wtpatEvtBtagSum += wtpatEvtBtag;
+
+			  bTagTemplateA[iflav][ibtag][icateg][itpat]->fill(trgSelect,float(evtBTag),weight * mistagWeight * wbbpur * wtpat * wtpatEvtBtag);
+			  massBTagTemplateA[iflav][ibtag][icateg][itpat]->fill(trgSelect,dijet_mass,float(evtBTag),weight * mistagWeight * wbbpur * wtpat * wtpatEvtBtag);
+			  errorMassBTagTemplateA[iflav][ibtag][icateg][itpat]->fill(trgSelect,dijet_mass,float(evtBTag),weight * errorMistagWeight * wbbpur * wtpat * wtpatEvtBtag);
+
+			  // fill the predictions
+                          //			 std::cout<<"pred beg"<<std::endl;
+			  float theFlavFrac[3] = { .95, .03, .02 };  // replace by actual numbers
+                          if (_doBkgPred)
+                            massBTagPred[iflav][ibtag][icateg][itpat]->fill(trgSelect,dijet_mass,float(evtBTag),weight * mistagWeight * theFlavFrac[iflav] * wtpat * wtpatEvtBtag);
+
+                          //			 std::cout<<"pred end"<<std::endl;
+
+
+			  // data-driven bb purity correction
+			  bool hasNegBTag[2];
+			  float Rmistag[2];
+			  const int bbPurity_Version_VarThresh = 3;
+			  for (int iiJ=0; iiJ<2; ++iiJ) {
+			    hasNegBTag[iiJ] = ifNegBTag( ntcHEBJetTag[selJets.at(theB[iiJ][icateg])],
+                                                         ptJet[selJets.at(theB[iiJ][icateg])],
+                                                         BTag::toString(bTagWPs.at(ibtag)),
+							 icateg,iiJ,bbPurity_Version_VarThresh,
+                                                         Rmistag[iiJ] );
+			  }
+			  massBTagTemplateUncldA[iflav][ibtag][icateg][itpat]->fill(trgSelect,dijet_mass,float(evtBTag),weight * mistagWeight * wtpat * wtpatEvtBtag);
+			  if (! (hasNegBTag[0] || hasNegBTag[1] )) {
+			    massBTagTemplateCldA[iflav][ibtag][icateg][itpat]->fill(trgSelect,dijet_mass,float(evtBTag),weight * mistagWeight * wtpat * wtpatEvtBtag);
+			  }
+
+			  // fixed-threshold method
+			  const int bbPurity_Version_FixedThresh = 4;
+			  for (int iiJ=0; iiJ<2; ++iiJ) {
+			    hasNegBTag[iiJ] = ifNegBTag( ntcHEBJetTag[selJets.at(theB[iiJ][icateg])],
+                                                         ptJet[selJets.at(theB[iiJ][icateg])],
+                                                         BTag::toString(bTagWPs.at(ibtag)),
+							 icateg,iiJ,bbPurity_Version_FixedThresh,
+                                                         Rmistag[iiJ] );
+			  }
+			  float weightR = 0;
+			  if ( hasNegBTag[0] && (! hasNegBTag[1] )) {
+			    weightR = Rmistag[0];
+			  } else if ( hasNegBTag[1] && (! hasNegBTag[0] )) {
+			    weightR = Rmistag[1];
+			  } else if ( hasNegBTag[0] && hasNegBTag[1] ) {
+			    weightR = Rmistag[0] + Rmistag[1] - Rmistag[0]*Rmistag[1];
+			  }
+			  if ( hasNegBTag[0] || hasNegBTag[1] ) {
+			    massBTagTemplateNonbbRA[iflav][ibtag][icateg][itpat]->fill(trgSelect,dijet_mass,float(evtBTag),weight * mistagWeight * wtpat * wtpatEvtBtag * weightR);
+			  }
+			}
+		      }
+		    }
+		  }
+		}
+	      }
+	    }
+	  }	  
+	}  // end of templates
+
+        //std::cout<<"end of templ"<<std::endl;
+
+	// here we fill the double btag histograms
+	// auxiliary array to perform permutations among first three jets
+	int shift[6] = { 0, 1, 2, 0, 1, 2 };
+	
+	for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+
+
+	  for (int icateg=0; icateg<ncateg; ++icateg) {
+            //cout<<"Before icateg"<<endl;
+
+	    int jetA = selJets.at(shift[icateg+1]);
+	    int jetB = selJets.at(shift[icateg+2]);
+
+	    // first the cut-based hist independent of flavor code
+	    if ( ( theBJetTag[ibtag][jetA] > bTagCuts.at(ibtag) )
+		 &&
+		 ( theBJetTag[ibtag][jetB] > bTagCuts.at(ibtag) ) ) {
+	      mDibBtcutA[ibtag][icateg]->fill(trgSelect,dijet_mass, weight );
+	      for (unsigned int iJ=0; iJ<nSelJet; ++iJ) {
+		ptDibBtcutA[ibtag][icateg][iJ]->fill(trgSelect,ptJet[selJets.at(iJ)],weight);
+	      }
+	    }
+
+	    if (_doMC) {
+	      //// matthias: everything in this if(_doMC) block is not well defined
+	      //// in case of undefined jet flavor
+
+	      // float wDoubleBtag = bTagEffOffline->eff(selJetsFlav[shift[icateg+1]],bTagWPs.at(ibtag),ptJet[jetA],etaJet[jetA])
+	      // 	* bTagEffOffline->eff(selJetsFlav[shift[icateg+2]],bTagWPs.at(ibtag),ptJet[jetB],etaJet[jetB]);
+	      // mDibBtweightA[ibtag][icateg]->fill(trgSelect,dijet_mass, weight * wDoubleBtag);
+	      // for (unsigned int iJ=0; iJ<nSelJet; ++iJ) {
+	      // 	ptDibBtweightA[ibtag][icateg][iJ]->fill(trgSelect,ptJet[selJets.at(iJ)],weight * wDoubleBtag );
+	      // }
+		
+              // //cout<<"Before second diJetCode"<<endl;
+	      // int dibFcDijet = JetFlavor::diJetCode( jetA, jetB );
+	      // if ( ( theBJetTag[ibtag][jetA] > bTagCuts.at(ibtag) )
+	      // 	   &&
+	      // 	   ( theBJetTag[ibtag][jetB] > bTagCuts.at(ibtag) ) ) {
+	      // 	mDibBtcutFcH[dibFcDijet][ibtag][icateg]->Fill( dijet_mass, weight );
+	      // 	hptdibbt[JetFlavor::code(jetA)][0][ibtag][icateg]->Fill( ptJet[jetA], weight );
+	      // 	hptdibbt[JetFlavor::code(jetB)][1][ibtag][icateg]->Fill( ptJet[jetB], weight );
+	      // }
+
+	      // // same with btag weighting. New: include online btag weight
+	      // mDibBtweightFcH[dibFcDijet][ibtag][icateg]->Fill( dijet_mass, weight
+              //                                                   * bTagEffOffline->eff(selJetsFlav[shift[icateg+1]],bTagWPs.at(ibtag),ptJet[jetA],etaJet[jetA])
+              //                                                   * bTagEffOffline->eff(selJetsFlav[shift[icateg+2]],bTagWPs.at(ibtag),ptJet[jetB],etaJet[jetB])
+	      // 							);
+              // //cout<<"After fill diJetCode"<<endl;
+
+	    } // _doMC
+            //std::cout<<"end of icateg"<<std::endl;
+	  } // loop over categ
+          //std::cout<<"end of ibtag"<<std::endl;
+	} // loop over ibtag
+      } else {
+        std::cout << "Unphysical dijet_mass_sq = " << dijet_mass_sq << std::endl;
+        //dijet_mass = -1;
+      } // if (dijet_mass...)
+    } // if (njet...)
+  } // loop over the tree
+  // termination
+  
+  std::cout << "Here we are in the termination" << std::endl;
+  // add the different tpat contributions, taking correlations into account
+  for (unsigned int iflav=0; iflav<nflav; ++iflav) {
+    for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+      for (int icateg=0; icateg<ncateg; ++icateg) {
+	for (int icorr=0; icorr<ncorr; ++icorr) {
+	  // for mass template
+	  TrigHistArray::mergeHistos( 3, massTemplateA[iflav][ibtag][icateg][icorr] );
+	}
+	// for event btag template
+	TrigHistArray::mergeHistos( 3, bTagTemplateA[iflav][ibtag][icateg] );
+	// for 2D mass / event btag template
+	TrigHistArray2D::mergeHistos( 3, massBTagTemplateA[iflav][ibtag][icateg] );
+	TrigHistArray2D::mergeHistos( 3, errorMassBTagTemplateA[iflav][ibtag][icateg] );
+	TrigHistArray2D::mergeHistos( 3, massBTagTemplateUncldA[iflav][ibtag][icateg] );
+	TrigHistArray2D::mergeHistos( 3, massBTagTemplateCldA[iflav][ibtag][icateg] );
+	TrigHistArray2D::mergeHistos( 3, massBTagTemplateNonbbRA[iflav][ibtag][icateg] );
+	// for prediction histograms
+        // 	TrigHistArray::mergeHistos( 3, massPred[iflav][ibtag][icateg] );
+        // 	TrigHistArray2D::mergeHistos( 3, massBTagPred[iflav][ibtag][icateg] );
+	// data-driven subtraction of non-bb (fixed threshold method). Only for tpat-corrected hist.
+	int mtpat = 3;
+	std::cout << "Call the adder for iflav=" << JetFlavor::toString( jetFlavorCodes.at(iflav) )
+		  << " ibtag=" << BTag::toString( bTagWPs.at(ibtag) )
+		  << " icateg=" << icateg 
+		  << " mtpat=" << mtpat << std::endl;
+	massBTagTemplateCldRA[iflav][ibtag][icateg][mtpat]->add( massBTagTemplateUncldA[iflav][ibtag][icateg][mtpat],
+							       massBTagTemplateNonbbRA[iflav][ibtag][icateg][mtpat],
+							       1, -1);
+      }
+    }
+  }
+
+  hout->Write();
+  hout->Close();
+  bbPur->Close();
+  
+  delete hout;
+  delete bbPur;
+  delete seltreefile;
+  delete theHbbTrigWeight;
+  delete bTagEffOffline;
+  delete bTagReleffOnline;
+  delete sv;
+  delete svOnline;
+}
+
+
+void prepareHistograms(const std::vector<std::string> &genericTriggerList,
+		       const std::vector<std::string> &triggerFilterList,
+		       const std::vector<JetFlavor::Code> &jetFlavorCodes,
+		       const BTag::WPs &bTagWPs,
+		       unsigned int nSelJet, 
+		       const std::vector<FlavorClass::Dijet> &flavorClassesDijet,
+		       const std::vector<FlavorClass::Jet3> &flavorClasses3rdJet,
+		       const std::vector<FlavorClass::Trijet> &flavorClassesTrijet,
+		       int ncorr, int ncateg, int ntpat, bool _doMC) {
+  
+  // Dimensions
+  const unsigned int nflav     = jetFlavorCodes.size(); // number of flavor codes
+  const unsigned int nbtag     = bTagWPs.size();        // number of offline btag working points
+  const unsigned int nfcDijet  = flavorClassesDijet.size();
+  const unsigned int nfc3rdJet = flavorClasses3rdJet.size();
+  const unsigned int nfcTrijet = flavorClassesTrijet.size();
+
+  // Labels
+  std::vector<std::string> flavNames;          // flavor codes
+  for(std::vector<JetFlavor::Code>::const_iterator it = jetFlavorCodes.begin();
+     it != jetFlavorCodes.end(); ++it) {
+    flavNames.push_back( JetFlavor::toString( *it ) );
+  }
+  std::vector<std::string> btagNames;         // b tags
+  for(BTag::WPsIt it = bTagWPs.begin(); it != bTagWPs.end(); ++it) {
+    btagNames.push_back( BTag::toString( *it ) );
+  }
+  std::vector<std::string> fcDijetNames; // dijet-flavor classes
+  for(std::vector<FlavorClass::Dijet>::const_iterator it = flavorClassesDijet.begin();
+      it != flavorClassesDijet.end(); ++it) {
+    fcDijetNames.push_back( FlavorClass::toString( *it ) );
+  }
+  std::vector<std::string> fc3rdJetNames; // flavor classes of 3rd jet
+  for(std::vector<FlavorClass::Jet3>::const_iterator it = flavorClasses3rdJet.begin();
+      it != flavorClasses3rdJet.end(); ++it) {
+    fc3rdJetNames.push_back( FlavorClass::toString( *it ) );
+  }
+  std::vector<std::string> fcTrijetNames; // trijet flavor classes
+  for(std::vector<FlavorClass::Trijet>::const_iterator it = flavorClassesTrijet.begin();
+      it != flavorClassesTrijet.end(); ++it) {
+    fcTrijetNames.push_back( FlavorClass::toString( *it ) );
+  }
+  
+
+  nJetA = new TrigHistArray(genericTriggerList,triggerFilterList,"nJetA","nJets",41,-0.5,40.5);
+  nJetPostselA = new TrigHistArray(genericTriggerList,triggerFilterList,"nJetPostselA","nJets Post Selection",41,-0.5,40.5);
+
+    
+  matchPatternA = new TrigHistArray(genericTriggerList,triggerFilterList,"matchPattern","matchPattern",20,-0.5,19.5);  
+  dPhiJet1Jet2A = new TrigHistArray(genericTriggerList,triggerFilterList,"adphij","delta-phi of two leading jets", 100, -3.15, 3.15); 
+
+  // for monitoring the trigger weights
+  triggerWeightA = new TrigHistArray(genericTriggerList,triggerFilterList,
+						    "triggerWeight","triggerWeight",100, 0, 1);
+  hout->cd();
+
+  // book histogram arrays for dijet mass and pt
+  //  Btcut    = btag selection by explicit cuts on discriminant
+  //  Btweight = btag emulated by applying btag weights (MC only)
+  //  Fc       = split into flavor pattern classes (MC only)
+  hout->mkdir("mjjBtcut");
+  hout->mkdir("mjjBtweight");
+  hout->mkdir("mjjBtcutFc");
+  hout->mkdir("mjjBtweightFc");
+  
+  hout->mkdir("DoubleOffBtagPtJetBtcut");
+  hout->mkdir("DoubleOffBtagPtJetBtweight");
+
+  hout->mkdir("DoubleOffBtagPtJetBtcutFc");
+  hout->mkdir("DoubleOffBtagPtJetBtweightFc");
+
+
+  hout->mkdir("ptjBtcut");
+  hout->mkdir("ptjBtcutFc");
+  hout->mkdir("ptjBtweight");
+  hout->mkdir("ptjBtweightFc");
+
+  hout->mkdir("dPhiBtweight");
+
+  mDijetBtA.resize(nbtag);
+  mDijetFcBtA.resize(nbtag);
+  mDijetBtwA.resize(nbtag);
+  mDijetFcBtwA.resize(nbtag);
+  dPhiJet1Jet3BtwA.resize(nbtag);
+  dPhiJet2Jet3BtwA.resize(nbtag);
+  ptJetBtA.resize(nbtag);
+  ptJetFcBtA.resize(nbtag);
+  ptJetBtwA.resize(nbtag);
+  ptJetFcBtwA.resize(nbtag);
+
+  for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+    hout->cd("mjjBtcut");
+    mDijetBtA[ibtag] = new TrigHistArray(genericTriggerList,triggerFilterList,
+                                         Form("mjjbt%s",btagNames.at(ibtag).c_str()),
+                                         Form("m(Jet1Jet2) 3*%s",btagNames.at(ibtag).c_str()),50,0,500 );
+    hout->cd("mjjBtcutFc");
+    mDijetFcBtA[ibtag].resize(nfcTrijet);
+    for (unsigned int iflavTrijet=0; iflavTrijet<nfcTrijet; ++iflavTrijet) {
+      mDijetFcBtA[ibtag][iflavTrijet] = new TrigHistArray(genericTriggerList,triggerFilterList,
+                                                      Form("mjjbt%sfc%s",btagNames.at(ibtag).c_str(),fcTrijetNames.at(iflavTrijet).c_str()),
+                                                      Form("m(Jet1Jet2) 3*%s fc %s",btagNames.at(ibtag).c_str(),fcTrijetNames.at(iflavTrijet).c_str()),50,0,500 );
+    } // nfcTrijet
+
+    if (_doMC) {
+      hout->cd("mjjBtweight");
+      mDijetBtwA[ibtag] = new TrigHistArray(genericTriggerList,triggerFilterList,
+                                            Form("mjjww%s",btagNames.at(ibtag).c_str()),
+                                            Form("m(Jet1Jet2) weighted as 3*%s",btagNames.at(ibtag).c_str()),50,0,500 );
+      hout->cd("mjjBtweightFc");
+      mDijetFcBtwA[ibtag].resize(nfcTrijet);
+      for (unsigned int iflavTrijet=0; iflavTrijet<nfcTrijet; ++iflavTrijet) {
+	    mDijetFcBtwA[ibtag][iflavTrijet] = new TrigHistArray(genericTriggerList,triggerFilterList,
+                                                         Form("mjjww%sfc%s",btagNames.at(ibtag).c_str(),fcTrijetNames.at(iflavTrijet).c_str()),
+                                                         Form("m(Jet1Jet2) weighted as 3*%s fc %s",btagNames.at(ibtag).c_str(),fcTrijetNames.at(iflavTrijet).c_str()),50,0,500 );
+      }  // nfcTrijet
+    } // _doMC
+    hout->cd();
+
+    hout->cd("dPhiBtweight");
+    dPhiJet1Jet3BtwA[ibtag] = new TrigHistArray(genericTriggerList,triggerFilterList,
+						Form("dPhiJ1J3%s",btagNames.at(ibtag).c_str()),Form("dPhiJ1J3 weighted as 3* %s",btagNames.at(ibtag).c_str()),50,-3.14,3.14);
+    dPhiJet2Jet3BtwA[ibtag] = new TrigHistArray(genericTriggerList,triggerFilterList,
+						Form("dPhiJ2J3%s",btagNames.at(ibtag).c_str()),Form("dPhiJ2J3 weighted as 3* %s",btagNames.at(ibtag).c_str()),50,-3.14,3.14);
+    hout->cd();
+
+    ptJetBtA[ibtag].resize(nSelJet);
+    ptJetBtwA[ibtag].resize(nSelJet);
+    for (unsigned int iJ=0; iJ<nSelJet; ++iJ) {
+      hout->cd("ptjBtcut");
+      ptJetBtA[ibtag][iJ] = new TrigHistArray(genericTriggerList,triggerFilterList,
+                                              Form("ptj%dbt%s",iJ,btagNames.at(ibtag).c_str()),
+                                              Form("pt leading jet %d 3*%s",iJ,btagNames.at(ibtag).c_str()),30,0,300);
+      
+      if (_doMC) {
+	    hout->cd("ptjBtweight");
+	    ptJetBtwA[ibtag][iJ] = new TrigHistArray(genericTriggerList,triggerFilterList,
+                                                 Form("ptj%dww%s",iJ,btagNames.at(ibtag).c_str()),
+                                                 Form("pt leading jet %d weighted as 3*%s",iJ,btagNames.at(ibtag).c_str()),30,0,300);
+      
+      } // _doMC
+    } // nSelJet
+    
+    ptJetFcBtA[ibtag].resize(nfcTrijet);
+    ptJetFcBtwA[ibtag].resize(nfcTrijet);
+    for (unsigned int iflavTrijet=0; iflavTrijet<nfcTrijet; ++iflavTrijet) {
+      ptJetFcBtA[ibtag][iflavTrijet].resize(nSelJet);
+      ptJetFcBtwA[ibtag][iflavTrijet].resize(nSelJet);
+      for (unsigned int iJ=0; iJ<nSelJet; ++iJ) {
+        hout->cd("ptjBtcutFc");
+  	    ptJetFcBtA[ibtag][iflavTrijet][iJ] = new TrigHistArray(genericTriggerList,triggerFilterList,
+                                                           Form("ptj%dbt%sfc%s",iJ,btagNames.at(ibtag).c_str(),fcTrijetNames.at(iflavTrijet).c_str()),
+                                                           Form("pt leading jet %d 3*%s fc %s",iJ,btagNames.at(ibtag).c_str(),fcTrijetNames.at(iflavTrijet).c_str()),30,0,300);
+
+        if (_doMC) {                                                   
+          hout->cd("ptjBtweightFc");
+          ptJetFcBtwA[ibtag][iflavTrijet][iJ] = new TrigHistArray(genericTriggerList,triggerFilterList,
+                                                           Form("ptj%dww%sfc%s",iJ,btagNames.at(ibtag).c_str(),fcTrijetNames.at(iflavTrijet).c_str()),
+                                                           Form("pt leading jet %d weighted as 3*%s fc %s",iJ,btagNames.at(ibtag).c_str(),fcTrijetNames.at(iflavTrijet).c_str()),30,0,300);
+        
+        } // _doMC
+      } // nSelJet
+    } // nfcTrijet
+  } // nbtag
+
+  hout->cd();
+
+  // svMass histograms
+  hout->mkdir("svMass");
+  hout->cd("svMass");
+  svMassA.resize(nSelJet);
+  for (unsigned int iJ=0; iJ<nSelJet; ++iJ) {
+    svMassA[iJ] = new TrigHistArray(genericTriggerList,triggerFilterList,
+				    Form("svMassj%d",iJ),Form("svMass jet %d",iJ),20,0.,10.);
+  } // nSelJet
+  svMassBtA.resize(nbtag);
+  for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+    svMassBtA[ibtag].resize(nSelJet);
+    for (unsigned int iJ=0; iJ<nSelJet; ++iJ) {
+      svMassBtA[ibtag][iJ] = new TrigHistArray(genericTriggerList,triggerFilterList,
+					       Form("svMassj%d %s",iJ,btagNames.at(ibtag).c_str()),
+					       Form("svMass jet %d %s",iJ,btagNames.at(ibtag).c_str()),20,0.,10.);
+    } // nSelJet
+  } // nbtag
+  hout->cd();
+
+  // evBtag and dijetMassEvBTag histograms
+  hout->mkdir("evBtag");
+  hout->mkdir("massEvBtag");
+  evBtagBtA.resize(nbtag);
+  massEvBtagBtA.resize(nbtag);
+  for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+    hout->cd("evBtag");
+    evBtagBtA[ibtag] = new TrigHistArray(genericTriggerList,triggerFilterList,
+					 Form("evBTag_%s",btagNames.at(ibtag).c_str()),
+					 Form("evBTag %s",btagNames.at(ibtag).c_str()),6,-0.5,5.5);
+    hout->cd("massEvBtag");
+    massEvBtagBtA[ibtag] = new TrigHistArray2D(genericTriggerList,triggerFilterList,
+					       Form("mjjEvBTag_%s",btagNames.at(ibtag).c_str()),
+					       Form("mjjEvBTag %s",btagNames.at(ibtag).c_str()),25,0.,500.,6,-0.5,5.5);
+  }
+  hout->cd();
+
+  // dijetMassEvBTag trigger-weighted histograms (MC only)
+  hout->mkdir("massEvBtagTW");
+  if (_doMC) {
+    massEvBtagBtTWA.resize(nbtag);
+    hout->cd("massEvBtagTW");
+    for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+      massEvBtagBtTWA[ibtag] = new TrigHistArray2D(genericTriggerList,triggerFilterList,
+						   Form("mjjEvBTagTW_%s",btagNames.at(ibtag).c_str()),
+						   Form("mjjEvBTag TW %s",btagNames.at(ibtag).c_str()),25,0.,500.,6,-0.5,5.5);
+    }
+  }
+  hout->cd();
+
+  // create the counter histograms for flavor pair classes (purity statistics). Meaningful for MC only
+  hout->mkdir("fcCount");
+  hout->cd("fcCount");
+  hfc.resize(nbtag);
+  hfcm.resize(nbtag);
+  hfcww.resize(nbtag);
+  hfcmww.resize(nbtag);
+  for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+    hfc[ibtag] = new TH1F(Form("hfc%s",btagNames.at(ibtag).c_str()),Form("Flavor triple code 3* %s",btagNames.at(ibtag).c_str()),46,-1.5,44.5);
+    hfcm[ibtag] = new TH1F(Form("hfcm%s",btagNames.at(ibtag).c_str()),Form("Flavor triple code 3* %s, mass 100-140",btagNames.at(ibtag).c_str()),46,-1.5,44.5);
+    hfcww[ibtag] = new TH1F(Form("hfc%sww",btagNames.at(ibtag).c_str()),Form("Flavor triple code weighted as 3* %s",btagNames.at(ibtag).c_str()),46,-1.5,44.5);
+    hfcmww[ibtag] = new TH1F(Form("hfcm%sww",btagNames.at(ibtag).c_str()),Form("Flavor triple code weighted as 3* %s, mass 100-140",btagNames.at(ibtag).c_str()),46,-1.5,44.5);
+    for (unsigned int iflavDijet=0; iflavDijet<nfcDijet; ++iflavDijet) {
+      for (unsigned int iflav3rdJet=0; iflav3rdJet<nfc3rdJet; ++iflav3rdJet) {
+	hfc[ibtag]->GetXaxis()->SetBinLabel(nfcDijet* iflav3rdJet + iflavDijet +2,Form("%s%s",fcDijetNames.at(iflavDijet).c_str(),fc3rdJetNames.at(iflav3rdJet).c_str()));
+	hfcm[ibtag]->GetXaxis()->SetBinLabel(nfcDijet* iflav3rdJet + iflavDijet +2,Form("%s%s",fcDijetNames.at(iflavDijet).c_str(),fc3rdJetNames.at(iflav3rdJet).c_str()));
+	hfcww[ibtag]->GetXaxis()->SetBinLabel(nfcDijet* iflav3rdJet + iflavDijet +2,Form("%s%s",fcDijetNames.at(iflavDijet).c_str(),fc3rdJetNames.at(iflav3rdJet).c_str()));
+	hfcmww[ibtag]->GetXaxis()->SetBinLabel(nfcDijet* iflav3rdJet + iflavDijet +2,Form("%s%s",fcDijetNames.at(iflavDijet).c_str(),fc3rdJetNames.at(iflav3rdJet).c_str()));
+      }
+    }
+  }
+  hfctrip = new TH1F("hfctrip","Flavor condensed triple code",7,-1.5,6.5);
+  for (unsigned int iflavTrijet=0; iflavTrijet<nfcTrijet; ++iflavTrijet) {
+    hfctrip->GetXaxis()->SetBinLabel(iflavTrijet+2,fcTrijetNames.at(iflavTrijet).c_str());
+  }
+  hout->cd();
+
+  // Mass templates derived from double btag sample
+  hout->mkdir("mjjTemplates");
+  hout->cd("mjjTemplates");
+  massTemplateA.resize(nflav);
+  for (unsigned int iflav=0; iflav<nflav; ++iflav) {
+    massTemplateA[iflav].resize(nbtag);
+    for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+      massTemplateA[iflav][ibtag].resize(ncateg);
+      for (int icateg=0; icateg<ncateg; ++icateg) {
+        massTemplateA[iflav][ibtag][icateg].resize(ncorr);
+        for (int icorr=0; icorr<ncorr; ++icorr) {
+	      massTemplateA[iflav][ibtag][icateg][icorr].resize(ntpat);
+	      for (int itpat=0; itpat<ntpat; ++itpat) {
+	        massTemplateA[iflav][ibtag][icateg][icorr][itpat] = new TrigHistArray(genericTriggerList,triggerFilterList,
+				  Form("mjjTemp_%s_%s_Cat%dCorr%dTpat%d",flavNames.at(iflav).c_str(),btagNames.at(ibtag).c_str(),icateg,icorr,itpat),
+				  Form("mJet1Jet2 Template, %s %s Cat%d Corr%d Tpat%d",flavNames.at(iflav).c_str(),btagNames.at(ibtag).c_str(),icateg,icorr,itpat),
+				  50,0,500);
+	      }
+	    }
+      }
+    }
+  }
+  hout->cd();
+  
+  // event bTag Templates
+  hout->mkdir("bTagTemplates");
+  hout->cd();
+  hout->mkdir("massBTagTemplates");
+  hout->cd();
+  // error for mass btag templates
+  hout->mkdir("errorMassBTagTemplates");
+  hout->cd();
+  hout->mkdir("massBTagTemplatesCld");
+  hout->cd();
+  hout->mkdir("massBTagTemplatesNonbbR");
+  bTagTemplateA.resize(nflav);
+  massBTagTemplateA.resize(nflav);
+  errorMassBTagTemplateA.resize(nflav);
+  massBTagTemplateCldA.resize(nflav);
+  massBTagTemplateUncldA.resize(nflav);
+  massBTagTemplateNonbbRA.resize(nflav);
+  massBTagTemplateCldRA.resize(nflav);
+  for (unsigned int iflav=0; iflav<nflav; ++iflav) {
+    bTagTemplateA[iflav].resize(nbtag);
+    massBTagTemplateA[iflav].resize(nbtag);
+    errorMassBTagTemplateA[iflav].resize(nbtag);
+    massBTagTemplateCldA[iflav].resize(nbtag);
+    massBTagTemplateUncldA[iflav].resize(nbtag);
+    massBTagTemplateNonbbRA[iflav].resize(nbtag);
+    massBTagTemplateCldRA[iflav].resize(nbtag);
+    for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+      bTagTemplateA[iflav][ibtag].resize(ncateg);
+      massBTagTemplateA[iflav][ibtag].resize(ncateg);
+      errorMassBTagTemplateA[iflav][ibtag].resize(ncateg);
+      massBTagTemplateCldA[iflav][ibtag].resize(ncateg);
+      massBTagTemplateUncldA[iflav][ibtag].resize(ncateg);
+      massBTagTemplateNonbbRA[iflav][ibtag].resize(ncateg);
+      massBTagTemplateCldRA[iflav][ibtag].resize(ncateg);
+      for (int icateg=0; icateg<ncateg; ++icateg) {
+        bTagTemplateA[iflav][ibtag][icateg].resize(ntpat);
+        massBTagTemplateA[iflav][ibtag][icateg].resize(ntpat);
+        errorMassBTagTemplateA[iflav][ibtag][icateg].resize(ntpat);
+        massBTagTemplateCldA[iflav][ibtag][icateg].resize(ntpat);
+        massBTagTemplateUncldA[iflav][ibtag][icateg].resize(ntpat);
+        massBTagTemplateNonbbRA[iflav][ibtag][icateg].resize(ntpat);
+        massBTagTemplateCldRA[iflav][ibtag][icateg].resize(ntpat);
+        for (int itpat=0; itpat<ntpat; ++itpat) {
+	      hout->cd("bTagTemplates");
+          bTagTemplateA[iflav][ibtag][icateg][itpat] = new TrigHistArray(genericTriggerList,triggerFilterList,
+                                                                       Form("bTagTemplate_%s_%s_Cat%dTpat%d",flavNames.at(iflav).c_str(),btagNames.at(ibtag).c_str(),icateg,itpat),
+                                                                       Form("bTagTemplate, %s %s Cat%d Tpat%d",flavNames.at(iflav).c_str(),btagNames.at(ibtag).c_str(),icateg,itpat),
+                                                                       6,-0.5,5.5);
+          hout->cd("massBTagTemplates");
+          massBTagTemplateA[iflav][ibtag][icateg][itpat] = new TrigHistArray2D(genericTriggerList,triggerFilterList,
+                                                                             Form("MassBTagTemplate_%s_%s_Cat%dTpat%d",flavNames.at(iflav).c_str(),btagNames.at(ibtag).c_str(),icateg,itpat),
+                                                                             Form("MassBTagTemplate, %s %s Cat%d Tpat%d",flavNames.at(iflav).c_str(),btagNames.at(ibtag).c_str(),icateg,itpat),
+									     25,0.,500.,6,-0.5,5.5);
+          hout->cd("errorMassBTagTemplates");
+          errorMassBTagTemplateA[iflav][ibtag][icateg][itpat] = new TrigHistArray2D(genericTriggerList,triggerFilterList,
+                                                                                  Form("ErrorMassBTagTemplate_%s_%s_Cat%dTpat%d",flavNames.at(iflav).c_str(),btagNames.at(ibtag).c_str(),icateg,itpat),
+                                                                                  Form("ErrorMassBTagTemplate, %s %s Cat%d Tpat%d",flavNames.at(iflav).c_str(),btagNames.at(ibtag).c_str(),icateg,itpat),
+                                                                                  25,0.,500.,6,-0.5,5.5);
+          hout->cd("massBTagTemplatesCld");  // templates cleaned with variable threshold
+          massBTagTemplateCldA[iflav][ibtag][icateg][itpat] = new TrigHistArray2D(genericTriggerList,triggerFilterList,
+                                                                                Form("MassBTagTemplateCld_%s_%s_Cat%dTpat%d",flavNames.at(iflav).c_str(),btagNames.at(ibtag).c_str(),icateg,itpat),
+                                                                                Form("MassBTagTemplate cleaned, %s %s Cat%d Tpat%d",flavNames.at(iflav).c_str(),btagNames.at(ibtag).c_str(),icateg,itpat),
+                                                                                25,0.,500.,6,-0.5,5.5);
+          massBTagTemplateUncldA[iflav][ibtag][icateg][itpat] = new TrigHistArray2D(genericTriggerList,triggerFilterList,  // for comparison, uncleaned
+                                                                                  Form("MassBTagTemplateUncld_%s_%s_Cat%dTpat%d",flavNames.at(iflav).c_str(),btagNames.at(ibtag).c_str(),icateg,itpat),
+                                                                                  Form("MassBTagTemplate non-cleaned, %s %s Cat%d Tpat%d",flavNames.at(iflav).c_str(),btagNames.at(ibtag).c_str(),icateg,itpat),
+                                                                                  25,0.,500.,6,-0.5,5.5);
+          hout->cd("massBTagTemplatesNonbbR");  // templates cleaned with fixed threshold method (R method)
+          massBTagTemplateNonbbRA[iflav][ibtag][icateg][itpat] = new TrigHistArray2D(genericTriggerList,triggerFilterList,
+                                                                                   Form("MassBTagTemplateNonbbR_%s_%s_Cat%dTpat%d",flavNames.at(iflav).c_str(),btagNames.at(ibtag).c_str(),icateg,itpat),
+                                                                                   Form("MassBTagTemplate nonbb R, %s %s Cat%d Tpat%d",flavNames.at(iflav).c_str(),btagNames.at(ibtag).c_str(),icateg,itpat),
+                                                                                   25,0.,500.,6,-0.5,5.5);	
+          massBTagTemplateCldRA[iflav][ibtag][icateg][itpat] = new TrigHistArray2D(genericTriggerList,triggerFilterList,
+                                                                                 Form("MassBTagTemplateCldR_%s_%s_Cat%dTpat%d",flavNames.at(iflav).c_str(),btagNames.at(ibtag).c_str(),icateg,itpat),
+                                                                                 Form("MassBTagTemplate cleaned R, %s %s Cat%d Tpat%d",flavNames.at(iflav).c_str(),btagNames.at(ibtag).c_str(),icateg,itpat),
+                                                                                 25,0.,500.,6,-0.5,5.5);
+        }
+      }
+    }
+  }
+  hout->cd();
+
+  // statistics for online btag pattern (double btag)
+  hout->mkdir("onlineBtag");
+  hout->cd("onlineBtag");
+  tpatA.resize(nbtag);
+  tpatAllA.resize(nbtag);
+  for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+    tpatA[ibtag].resize(ncateg);
+    for (int icateg=0; icateg<ncateg; ++icateg) {
+      tpatA[ibtag][icateg] = new TrigHistArray(genericTriggerList,triggerFilterList,
+                                               Form("tpat_%s_Cat%d",btagNames.at(ibtag).c_str(),icateg),
+                                               Form("Online btag trig pattern, 2*%s, Cat%d",btagNames.at(ibtag).c_str(),icateg),9,-0.5,8.5);
+    }
+    tpatAllA[ibtag] = new TrigHistArray(genericTriggerList,triggerFilterList,
+                                        Form("tpat_%s_all",btagNames.at(ibtag).c_str()),
+                                        Form("Online btag trig pattern, 2*%s, all",btagNames.at(ibtag).c_str()),9,-0.5,8.5);
+  }
+
+  // statistics for online btag pattern (triple btag)
+  atpattripall.resize(nbtag);
+  for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+    atpattripall[ibtag] = new TrigHistArray(genericTriggerList,triggerFilterList,
+                                            Form("tpattrip_%s_all",btagNames.at(ibtag).c_str()),
+                                            Form("Online btag trig pattern, 3*%s, all",btagNames.at(ibtag).c_str()),9,-0.5,8.5);
+  }
+  hout->cd();
+
+  // double btag kinematic histograms
+  hout->mkdir("doubleBtag");
+  hout->cd("doubleBtag");
+
+  mDibBtcutA.resize(nbtag);
+  mDibBtweightA.resize(nbtag);
+  ptDibBtcutA.resize(nbtag);
+  ptDibBtweightA.resize(nbtag);
+  for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+    mDibBtcutA[ibtag].resize(ncateg);
+    mDibBtweightA[ibtag].resize(ncateg);
+    ptDibBtcutA[ibtag].resize(ncateg);
+    ptDibBtweightA[ibtag].resize(ncateg);
+    for (int icateg=0; icateg<ncateg; ++icateg) {
+      mDibBtcutA[ibtag][icateg] = new TrigHistArray(genericTriggerList,triggerFilterList,
+						    Form("mdib_%s_Cat%d_bt",btagNames.at(ibtag).c_str(),icateg),
+						    Form("Jet1Jet2 2* %s Cat%d",btagNames.at(ibtag).c_str(),icateg),
+						    25,0,500);
+      mDibBtweightA[ibtag][icateg] = new TrigHistArray(genericTriggerList,triggerFilterList,
+						       Form("mdib_%s_Cat%d_ww",btagNames.at(ibtag).c_str(),icateg),
+						       Form("Jet1Jet2 weighted as 2* %s Cat%d",btagNames.at(ibtag).c_str(),icateg),
+						       25,0,500);
+
+      ptDibBtcutA[ibtag][icateg].resize(nSelJet);
+      ptDibBtweightA[ibtag][icateg].resize(nSelJet);
+      for (unsigned int iJ=0; iJ<nSelJet; ++iJ) {
+        ptDibBtcutA[ibtag][icateg][iJ] = new TrigHistArray(genericTriggerList,triggerFilterList,
+							   Form("ptdib_%s_Cat%d_j%d_bt",btagNames.at(ibtag).c_str(),icateg,iJ),
+							   Form("pt dibtag %s Cat%d jet %d",btagNames.at(ibtag).c_str(),icateg,iJ),
+							   30,0,300);
+        ptDibBtweightA[ibtag][icateg][iJ] = new TrigHistArray(genericTriggerList,triggerFilterList,
+                                                              Form("ptdib_%s_Cat%d_j%d_ww",btagNames.at(ibtag).c_str(),icateg,iJ),
+                                                              Form("pt dibtagweight %s Cat%d jet %d",btagNames.at(ibtag).c_str(),icateg,iJ),
+                                                              30,0,300);
+      }
+    }
+  }
+
+
+  hout->cd();
+
+  // double btag purity histograms. These are produced to create bbPurity corrections.
+  //  Btcut    = btag selection by explicit cuts on discriminant
+  //  Btweight = btag emulated by applying btag weights (MC only)
+  hout->mkdir("bbPurityBtcut");
+  hout->mkdir("bbPurityBtweight");
+  if (_doMC) {
+    mDibBtcutFcH.resize(nfcDijet);
+    mDibBtweightFcH.resize(nfcDijet);
+    for (unsigned int iflavDijet=0; iflavDijet<nfcDijet; ++iflavDijet) {
+      mDibBtcutFcH[iflavDijet].resize(nbtag);
+      mDibBtweightFcH[iflavDijet].resize(nbtag);
+      for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+        mDibBtcutFcH[iflavDijet][ibtag].resize(ncateg);
+        mDibBtweightFcH[iflavDijet][ibtag].resize(ncateg);
+        for (int icateg=0; icateg<ncateg; ++icateg) {
+          hout->cd("bbPurityBtcut");
+          mDibBtcutFcH[iflavDijet][ibtag][icateg] = new TH1F(Form("mdib_%s_%s_Cat%dbt",fcDijetNames.at(iflavDijet).c_str(),btagNames.at(ibtag).c_str(),icateg),
+                                                           Form("Jet1Jet2 %s 2* %s Cat%d",fcDijetNames.at(iflavDijet).c_str(),btagNames.at(ibtag).c_str(),icateg),
+                                                           50,0,500);
+          hout->cd("bbPurityBtweight");
+          mDibBtweightFcH[iflavDijet][ibtag][icateg] = new TH1F(Form("mdib_%s_%s_Cat%dww",fcDijetNames.at(iflavDijet).c_str(),btagNames.at(ibtag).c_str(),icateg),
+                                                              Form("Jet1Jet2 %s weighted as 2* %s Cat%d",fcDijetNames.at(iflavDijet).c_str(),btagNames.at(ibtag).c_str(),icateg),
+                                                              50,0,500);
+        }
+      }
+    }
+  } /// _doMC
+
+
+  hout->cd();
+
+  // for the double btag signature, histogram the pt of the btagged jets
+  const int nAB = 2;
+  std::string sAB[nAB] = {"jetA","jetB"};
+
+  hout->cd("bbPurityBtcut");
+  if (_doMC) {
+    hptdibbt.resize(nflav);
+    for (unsigned int iflav=0; iflav<nflav; ++iflav) {
+      hptdibbt[iflav].resize(nAB);
+      for (int iAB=0; iAB<nAB; ++iAB) {
+        hptdibbt[iflav][iAB].resize(nbtag);
+        for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+          hptdibbt[iflav][iAB][ibtag].resize(ncateg);
+          for (int icateg=0; icateg<ncateg; ++icateg) {
+            hptdibbt[iflav][iAB][ibtag][icateg] = new TH1F(Form("ptdibbt_%s_%s_%s_Cat%d",flavNames.at(iflav).c_str(),sAB[iAB].c_str(), btagNames.at(ibtag).c_str(),icateg),
+                                                         Form("ptdibbt_%s_%s_%s_Cat%d",flavNames.at(iflav).c_str(),sAB[iAB].c_str(), btagNames.at(ibtag).c_str(),icateg),30,0,300);
+          }
+        }
+      }
+    }
+  }
+  hout->cd();
+
+  // background prediction histograms
+  hout->mkdir("bgPredict");
+  hout->cd("bgPredict");
+  massPred.resize(nflav);
+  massBTagPred.resize(nflav);
+  for (unsigned int iflav=0; iflav<nflav; ++iflav) {
+    massPred[iflav].resize(nbtag);
+    massBTagPred[iflav].resize(nbtag);
+    for (unsigned int ibtag=0; ibtag<nbtag; ++ibtag) {
+      massPred[iflav][ibtag].resize(ncateg);
+      massBTagPred[iflav][ibtag].resize(ncateg);
+      for (int icateg=0; icateg<ncateg; ++icateg) {
+        massPred[iflav][ibtag][icateg].resize(ntpat);
+        massBTagPred[iflav][ibtag][icateg].resize(ntpat);
+        for (int itpat=0; itpat<ntpat; ++itpat) {
+	      massPred[iflav][ibtag][icateg][itpat] = new TrigHistArray(genericTriggerList,triggerFilterList,
+				Form("massPred_%s_%s_Cat%dTpat%d",flavNames.at(iflav).c_str(),btagNames.at(ibtag).c_str(),icateg,itpat),
+				Form("mJet1Jet2 Prediction, %s %s Cat%d Tpat%d",flavNames.at(iflav).c_str(),btagNames.at(ibtag).c_str(),icateg,itpat),
+				50,0,500);
+          massBTagPred[iflav][ibtag][icateg][itpat] = new TrigHistArray2D(genericTriggerList,triggerFilterList,
+				  Form("MassBTagPred_%s_%s_Cat%dTpat%d",flavNames.at(iflav).c_str(),btagNames.at(ibtag).c_str(),icateg,itpat),
+				  Form("MassBTag prediction, %s %s Cat%d Tpat%d",flavNames.at(iflav).c_str(),btagNames.at(ibtag).c_str(),icateg,itpat),
+				  25,0.,500.,6,-0.5,5.5);
+        }
+      }
+    }
+  }
+  hout->cd();
+  hout->mkdir("debug_L3");
+  hout->cd("debug_L3");
+  hptL3Objects_btagtrigger = new TH1D("hptL3Objects_btagtrigger","hptL3Objects_btagtrigger", 300, 0.0, 300.0);
+  hptL3Objects_matchedtoL2_btagtrigger = new TH1D("hptL3Objects_matchedtoL2_btagtrigger","hptL3Objects_matchedtoL2_btagtrigger", 300, 0.0, 300.0);
+  h_distance_L3Objects_vs_L2Objects_btagtrigger = new TH1D("h_distance_L3Objects_vs_L2Objects_btagtrigger","h_distance_L3Objects_vs_L2Objects_btagtrigger", 80.0, 0.0, 2.0);
+  
+  hout->cd();
+
+
+  return;
+
+}
+

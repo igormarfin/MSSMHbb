@@ -1,0 +1,644 @@
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <cmath>
+#include <vector>
+#include <sstream>
+
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <TCanvas.h>
+#include <TGraphErrors.h>
+#include <TMultiGraph.h>
+#include <TStyle.h>
+#include <TH1.h>
+#include <TFile.h>
+#include <TH1D.h>
+#include <TH2D.h>
+#include <TF1.h>
+#include <TTree.h>
+#include <TChain.h>
+#include <TFileCollection.h>
+#include <TGraph2D.h>
+#include <TLatex.h>
+#include <TMarker.h>
+#include <math.h>
+#include <TMath.h>
+#include <TFileInfo.h>
+
+
+//#include <math>
+#include "TTree.h"
+#include "TChain.h"
+#include "TROOT.h"
+#include "TLorentzVector.h"
+#include "TRFIOFile.h"
+#include "TChain.h"
+#include "TMath.h"
+#include "TString.h"
+#include <TFileCollection.h>
+
+#include <TString.h>
+
+#include "Analysis/Utilities/interface/PileUpProducer.h"
+#include "FWCore/FWLite/interface/AutoLibraryLoader.h"
+#include "PhysicsTools/FWLite/interface/CommandLineParser.h"
+#include "FWCore/ParameterSet/interface/FileInPath.h"
+
+#include "Analysis/Utilities/interface/getHbbMetadata.h"
+#include "Analysis/Utilities/interface/jetFlavorCode.h"
+#include "Analysis/Utilities/interface/HbbNtuple.h"
+#include "Analysis/Utilities/interface/bTagEff.h"
+#include "Analysis/Utilities/interface/svMass.h"
+
+#include "Analysis/Utilities/interface/checkHLTBTagMatch.h"
+#include "Analysis/Utilities/interface/TriggerRunSelection.h"
+#include "Analysis/Utilities/interface/HbbTrigWeight.h"
+
+
+
+#if defined(PU_ALEX)
+
+#include "Analysis/Utilities/interface/PUWeight.h"
+
+#endif
+
+
+using namespace std;
+using namespace edm;
+
+
+int main(int argc, char * argv[])
+{
+
+
+
+
+  gSystem->Load( "libFWCoreFWLite" );
+  AutoLibraryLoader::enable();
+
+  // initialize command line parser
+optutl::CommandLineParser parser ("PU parser");
+
+parser.addOption("MCPUROOT",optutl::VariableMapCont::kString,"file having mc pu distro");
+parser.addOption("DATAPUROOT",optutl::VariableMapCont::kString,"file having data pu dictro");
+parser.addOption("OUTROOT",optutl::VariableMapCont::kString,"file which will have pv distro");
+
+  // set defaults
+  parser.stringValue ("MCPUROOT") =  "/Analysis/HbbMSSMAnalysis/data/mcpuroot.root";
+  parser.stringValue ("DATAPUROOT") =  "/Analysis/HbbMSSMAnalysis/data/datapuroot.root";
+  parser.stringValue ("OUTROOT") =  "testPV.root";
+
+  // parse arguments
+  parser.parseArguments (argc, argv);
+
+ std::string mcpuroot_ = parser.stringValue("MCPUROOT");
+ std::string datapuroot_ = parser.stringValue("DATAPUROOT");
+ std::string outroot_ = parser.stringValue("OUTROOT");
+
+
+TString _mcpuroot = TString(mcpuroot_);
+TString _datapuroot = TString(datapuroot_);
+TString _outroot = TString(outroot_);
+
+if (TString(_mcpuroot(0)).Contains("/")) _mcpuroot.Remove(0,1);
+if (TString(_datapuroot(0)).Contains("/")) _datapuroot.Remove(0,1);
+if (TString(_outroot(0)).Contains("/")) _outroot.Remove(0,1);
+
+FileInPath _fileInMC(_mcpuroot.Data());
+FileInPath _fileInDATA(_datapuroot.Data());
+///FileInPath _fileInOUT(_outroot.Data());
+
+//cout<<"file full path: "<<_fileInMC.fullPath()<<endl;
+//cout<<"file full path: "<<_fileInDATA.fullPath()<<endl;
+///cout<<"file full path: "<<_fileInOUT.fullPath()<<endl;
+
+
+  bool _doMC = false;  // set to true for MC, false for real data
+
+  bool doLumiWeighting = true;  // weight MC events according to intgrated lumi
+
+  const int nSelJet = 3;   // number of jets considered in b(bb) final state
+
+  // chain mode
+  TChain f("hbbanalysis/HBBTo4B");
+  TFileCollection theFileColl("myNtFileCollection","","theMergeList.txt");
+  if (theFileColl.GetNFiles() <=0) {
+    std::cout << "Problem opening list of input files " << std::endl;
+    return 0;
+  }
+
+
+  TIter next( (TCollection*) theFileColl.GetList() );
+  TFileInfo* tfi = (TFileInfo*) next();
+  TString firstFile( tfi->GetFirstUrl()->GetFile() );
+  if (firstFile.Contains("Run2011") || firstFile.Contains("Run2012")) {
+    std::cout << "Assume this is RealData" << std::endl;
+    _doMC = false;
+  } else {
+    std::cout << "Assume this is MonteCarlo" << std::endl;
+    _doMC = true;
+  }
+
+
+
+  // create the trigger filter list. Only histograms for these triggers will be created
+  std::vector<std::string> genericTriggerList;
+  std::vector<std::string> triggerFilterList;
+
+  std::vector<std::string> HLTBtagTriggerObjectList;
+  std::vector<std::string> HLTBtagTriggerObjectFilterList;
+
+
+  if (_doMC) {
+
+  /// 2012 analysis
+     triggerFilterList.push_back("HLT_Jet60Eta1p7_Jet53Eta1p7_DiBTagIP3DFastPV_v");
+     triggerFilterList.push_back("HLT_Jet80Eta1p7_Jet70Eta1p7_DiBTagIP3DFastPV_v");
+     triggerFilterList.push_back("HLT_Jet160Eta2p4_Jet120Eta2p4_DiBTagIP3DFastPVLoose_v");
+
+    //there are two HLT Btag trigger objects. The first two triggers specified above use the same HLT Btag objects
+    HLTBtagTriggerObjectFilterList.push_back("hltBLifetimeL3FilterbbPhiL1FastJetFastPV");
+    HLTBtagTriggerObjectFilterList.push_back("hltBLifetimeL3FilterbbPhiL1FastJetFastPV");
+    HLTBtagTriggerObjectFilterList.push_back("hltBLifetimeL3FilterbbPhiLooseL1FastJetFastPV");
+
+  } else {
+
+    /// 2012 analysis
+     triggerFilterList.push_back("HLT_Jet60Eta1p7_Jet53Eta1p7_DiBTagIP3DFastPV_v");
+     triggerFilterList.push_back("HLT_Jet80Eta1p7_Jet70Eta1p7_DiBTagIP3DFastPV_v");
+     triggerFilterList.push_back("HLT_Jet160Eta2p4_Jet120Eta2p4_DiBTagIP3DFastPVLoose_v");
+
+    //there are two HLT Btag trigger objects. The first two triggers specified above use the same HLT Btag objects
+    HLTBtagTriggerObjectFilterList.push_back("hltBLifetimeL3FilterbbPhiL1FastJetFastPV");
+    HLTBtagTriggerObjectFilterList.push_back("hltBLifetimeL3FilterbbPhiL1FastJetFastPV");
+    HLTBtagTriggerObjectFilterList.push_back("hltBLifetimeL3FilterbbPhiLooseL1FastJetFastPV");
+
+
+  }
+
+
+  // extract generic trigger list and number of input events from ntuple files
+  float lumiScaleFac = 1;
+<<<<<<< .mine
+  float xsect=0e0;
+//   int nEvt= 
+getHbbMetadata(theFileColl,genericTriggerList,HLTBtagTriggerObjectList,1000.,lumiScaleFac,_doMC,xsect);
+=======
+  //  int nEvt= getHbbMetadata(theFileColl,genericTriggerList,HLTBtagTriggerObjectList,1000.,lumiScaleFac,_doMC);
+>>>>>>> .r3697
+
+  f.AddFileInfoList((TCollection*) theFileColl.GetList());
+  TTree* hbbtree = &f;
+
+  //kinematic analysis cuts
+  double maxEta = 1.7;
+  double jetPtMin[nSelJet] = { 60.0, 53.0, 20};  // leading jet lower pt thresholds
+  std::string Scenario("MediumMass2012");  // Higgs mass scenario // available: LowMass2012, MediumMass2012, HighMass2012
+
+
+#if defined(HIGH_MASS)
+  Scenario= std::string("HighMass2012");
+  jetPtMin[0] = 80;
+  jetPtMin[1] = 70.0;
+#endif
+
+#if defined(VERY_HIGH_MASS)
+    Scenario= std::string("VeryHighMass2012");
+    jetPtMin[0] = 160.0;
+    jetPtMin[1] = 120.0;
+    maxEta = 2.4;
+#endif
+
+  double jetPtMax[nSelJet] = {3500, 3500, 3500}; // leading jet upper pt thresholds
+
+//set it to false for data
+ bool doTrigSelect = true;  // perform trigger selection according to scenario
+ bool forceTripleOnlineBtagMatch =false;  // require triple online btag match on triple btag signature 
+
+
+#if defined(ONLINE_BTAG_MATCH)
+forceTripleOnlineBtagMatch =true;
+#endif
+
+
+
+<<<<<<< .mine
+  //float* triggerWeight = new float[genericTriggerList.size()];
+=======
+//  float* triggerWeight = new float[genericTriggerList.size()];
+>>>>>>> .r3697
+  // create trigger weight helper object
+<<<<<<< .mine
+//  HbbTrigWeight* theHbbTrigWeight = new HbbTrigWeight(&genericTriggerList,&triggerFilterList);
+=======
+  // HbbTrigWeight* theHbbTrigWeight = new HbbTrigWeight(genericTriggerList,triggerFilterList); // matthias: I think this is not used anywhere. Removing this line removes one line of compiler warnings...
+>>>>>>> .r3697
+
+
+
+  // create trigger run selection object
+  TriggerRunSelection trigSelector( Scenario, &genericTriggerList );
+
+  TriggerRunSelection * ptrTrigSelector = & trigSelector;
+
+ if (_doMC) {
+    doTrigSelect = false;
+    ptrTrigSelector=NULL;
+    }
+
+  checkHLTBtagMatch HLTBtagMatchObj(
+                                    triggerFilterList,
+                                    HLTBtagTriggerObjectFilterList,
+                                    HLTBtagTriggerObjectList,
+                                    doTrigSelect,
+                                    ptrTrigSelector
+                                    );
+
+
+
+  // here we define dimensions and labels
+  const int nflav = 3;  // number of flavor groups to be distinguished
+  const int nbtag = 4;  // number of offline btag working points
+  const int ncateg = 3; // ranks of untagged jet
+<<<<<<< .mine
+//  const int ncorr = 2; // correction levels
+//  const int ntpat = 4; // trigger pattern (online btag). (0,1,2)=rank of non-btagged jet, 3=all combined
+=======
+  //  const int ncorr = 2; // correction levels
+  //  const int ntpat = 4; // trigger pattern (online btag). (0,1,2)=rank of non-btagged jet, 3=all combined
+>>>>>>> .r3697
+
+ std::string onlineBtagVersion("V4"); // choices: smpf or V4
+
+
+  const std::string flavlabel[nflav] = {"udsg","c","b"};  // labels for flavor groups
+  // define names of btag variants
+  const std::string sbtag[nbtag] = { "TCHPT", "TCHP6", "CSVT", "SSVHPT" };
+  string btdiscr[nbtag] = { "TCHP", "TCHP", "CSV", "SSVHP" };
+  // corresponding discriminant cuts
+  double btcut[nbtag] = { 3.41, 6 , 0.898, 2 };  // working points for btags
+  bool bbPurityCorr[nbtag] = { true, true, true, true };  // specify if bbPurity collection should be applied
+
+  // define flavor pair classes
+<<<<<<< .mine
+//  const int nfcDijet = 6;
+//  string sfcDijet[nfcDijet] = { "bb", "bc", "bq", "cc", "cq", "qq" };
+//  const int nfc3rd = 3;
+//  string sfc3rd[nfc3rd] = { "q", "c", "b" };
+=======
+  //  const int nfcDijet = 6;
+  //  string sfcDijet[nfcDijet] = { "bb", "bc", "bq", "cc", "cq", "qq" };
+  //  const int nfc3rd = 3;
+  //  string sfc3rd[nfc3rd] = { "q", "c", "b" };
+>>>>>>> .r3697
+  // flavor triplet classes
+<<<<<<< .mine
+//  const int nfcTrip = 6;
+  //string sfcTrip[nfcTrip] = { "bbb", "bbc", "bbq", "bcb", "bqb", "non-bb" };
+=======
+  //  const int nfcTrip = 6;
+  //  string sfcTrip[nfcTrip] = { "bbb", "bbc", "bbq", "bcb", "bqb", "non-bb" };
+>>>>>>> .r3697
+  // the following are used for templates
+<<<<<<< .mine
+//  const int nfc = 3;
+//  string sfc[nfc] = { "q", "c", "b" };
+=======
+  // const int nfc = 3;
+  // string sfc[nfc] = { "q", "c", "b" };
+>>>>>>> .r3697
+
+  // make pointers to appropriate btag discriminants
+  float* theBJetTag[nbtag];
+  for (int ibtag=0; ibtag<nbtag; ++ibtag) {
+    if (btdiscr[ibtag] == "TCHP") {
+      theBJetTag[ibtag] = tcHPBJetTag;
+    }  else if (btdiscr[ibtag] == "CSV") {
+      theBJetTag[ibtag] = combSVBJetTag;
+    }  else if (btdiscr[ibtag] == "SSVHP") {
+      theBJetTag[ibtag] = svHPBJetTag;
+    } else {
+      std::cout << "invalid btag discriminant " << btdiscr[ibtag] << std::endl;
+    }
+  }
+
+
+
+  // create the btag efficiency objects
+  // offline btag object
+
+  bTagEff* bTagEffOffline = new bTagEff("/afs/naf.desy.de/user/j/jbehr/public/cms/btag/btagefficiencies_v5.root","offline",flavlabel,sbtag,nflav,nbtag);
+
+
+  // online btag object (with smp smoothing)
+
+  bTagEff* bTagReleffOnline = NULL;
+  if (onlineBtagVersion == "smpf") {
+   bTagReleffOnline  =new bTagEff("/afs/naf.desy.de/user/r/rmankel/scratch/HbbPat/CMSSW_4_2_3_patch2/src/DesyHiggsAnalyses/HBBAnalyses/test/results/job014/QCD_Pt_bEnriched-T14b/btagMatrixOnline-csv/smooth/btagMatrixOnline-csv-smpf.root","online",flavlabel,sbtag,nflav,nbtag);
+
+  } else if (onlineBtagVersion == "V4") {
+    bTagReleffOnline  = new bTagEff("/afs/naf.desy.de/user/r/rmankel/public/btagMatrix/btagMatrixOnline-V4.root","online",flavlabel,sbtag,nflav,nbtag);
+  } else {
+    std::cout << "No such online btag version available, " << onlineBtagVersion
+              << std::endl;
+    return 0;
+  }
+  std::cout << "Using online btag version: " << onlineBtagVersion << std::endl;
+
+
+
+
+  TF1* fbbfrac[nbtag][ncateg];
+  TFile* bbPur = new TFile("/afs/naf.desy.de/user/r/rmankel/scratch/HbbPat/CMSSW_4_2_3_patch2/src/DesyHiggsAnalyses/HBBAnalyses/test/calib/bbPurity-csv-online.root");
+  for (int ibtag=0; ibtag<nbtag; ++ibtag) {
+    for (int icateg=0; icateg<ncateg; ++icateg) {
+      fbbfrac[ibtag][icateg] = (TF1*) bbPur->Get( Form("fbbfrac-ww-%s-Cat%d",sbtag[ibtag].c_str(),icateg) );
+      if ( fbbfrac[ibtag][icateg] == NULL ) {
+        std::cout << "bbPur correction function not found for" << sbtag[ibtag].c_str() << " categ " << icateg << std::endl;
+        if (bbPurityCorr[ibtag]) return 0;
+      }
+    }
+  }
+
+
+  // open the SVMass template files
+  //TString SVMassFileName("/afs/naf.desy.de/user/r/rasp/public/Hbb4b/TTJets_svMass.root");
+  //TString SVMassOnlineFileName("/afs/naf.desy.de/user/r/rasp/public/Hbb4b/TTJets_BTagHLTmatched_svMass.root");
+  TString SVMassFileName("/afs/naf.desy.de/user/r/rasp/public/Hbb4b/TTJets_svMass.root");
+  TString SVMassOnlineFileName("/afs/naf.desy.de/user/r/rasp/public/Hbb4b/TTJets_BTagHLTmatched_svMass.root");
+
+<<<<<<< .mine
+//  svMass * sv = new svMass(SVMassFileName);
+//  svMass * svOnline = new svMass(SVMassOnlineFileName);
+=======
+  // svMass * sv = new svMass(SVMassFileName);
+  // svMass * svOnline = new svMass(SVMassOnlineFileName);
+>>>>>>> .r3697
+
+
+
+
+
+//TFile * _file = TFile::Open("testPV.root","RECREATE");
+//TFile * _file = TFile::Open(_fileInOUT.fullPath().c_str(),"RECREATE");
+TFile * _file = TFile::Open(_outroot.Data(),"RECREATE");
+
+
+_file->cd();
+
+  TH1::AddDirectory(true);
+  TH1::SetDefaultSumw2();
+  TH2::SetDefaultSumw2();  // not really needed (we inherit from TH1)
+
+
+TH1F* _PVHist0 = new TH1F("PV0","PV before PU reweighting",60,0,60);
+TH1F* _PVHist1 = new TH1F("PV1","PV after PU reweighting",60,0,60);
+
+
+
+  Int_t nentries = (Int_t) hbbtree->GetEntries();
+  cout << "Number of events in ntuple: " << nentries << endl;
+
+#include "Analysis/Utilities/interface/HbbNtuple.cc"
+
+
+
+
+#if defined(PU_ALEX)
+
+ PUWeight * _pileup=0;
+if (_doMC) {
+
+cout<<"I'm Algo from Alexei"<<endl;
+  TString baseDir("/afs/naf.desy.de/user/r/rasp/public/HTauTauAnalysis/RooT");
+   _pileup = new PUWeight(baseDir);
+  _pileup->InitPUWeightsS6("PileUp_2011.root","PileUp_Fall11.root");
+
+}
+
+#else 
+
+PileUpProducer * _pileup=0;
+
+
+if (_doMC) {
+
+////Compute pileup reweighting
+_pileup = new PileUpProducer("PUProducer","PUProducer",_fileInDATA.fullPath().c_str(),_fileInMC.fullPath().c_str(),"pileup");
+}
+
+#endif
+
+
+
+
+std::vector<int> _theFlav; /// to catch flavor of objects
+
+
+  // loop over the tree
+  for (Int_t iE=0; iE<nentries ; iE++) {
+    hbbtree->GetEntry(iE);
+    //hbbTo4b->GetEntry(iE);
+//  if (iE<100) std::cout << "Event = " << iE<< std::endl;
+//	else return 0;
+//     if (run > 167151) {
+//       std::cout << "Run number above " << 167151 << " --> terminate" << std::endl;
+//       break;
+//     }
+
+    std::vector<int> leadingJets;
+
+if (iE%5000==0) { cout<<"Event : "<<iE;         cout << '\xd';}
+
+    if (doTrigSelect) {
+    unsigned int trgSelect = trgAccept & trigSelector.mask( run );
+     trgAccept=trgSelect;
+
+     }
+
+
+
+    // find set of leading jets
+    int nJet = 0;
+    // loop over the jets
+    for (int iJet=0; iJet<numberOfJets; ++iJet) {
+      if (nJet >= nSelJet) break;
+      if (! (fabs(etaJet[iJet])<maxEta) ) continue;
+
+      if (! (numberOfConstituentsInJet[iJet] > 1) ) continue;
+
+      if ( (ptJet[iJet] > jetPtMin[nJet]) && (ptJet[iJet] < jetPtMax[nJet]) ) {
+        leadingJets.push_back(iJet);
+	 _theFlav.push_back(jetFlavorCode(iJet));
+
+        ++nJet;
+      }
+    }
+
+    if (nJet < nSelJet) continue;
+
+
+
+double _offlineBtagWeight=1e0; /// needed by MVATrainer
+double _onlineBtagWeight=1e0; /// needed by MVATrainer
+
+
+    // compute the weight for this event
+    float weight = 1;
+    if ( _doMC && doLumiWeighting )  weight = lumiScaleFac;
+
+///We are working with CSVT
+     int   iiovl=2;
+
+ float _dphij =  phiJet[leadingJets[1]] - phiJet[leadingJets[0]];
+      if (_dphij>3.1415926) _dphij -= 2*3.1415926;
+      if (_dphij<-3.1415926) _dphij += 2*3.1415926;
+float _detaj = etaJet[leadingJets[1]] - etaJet[leadingJets[0]];
+float  _deltaR = sqrt( _dphij*_dphij + _detaj*_detaj );
+
+
+
+bool _isOk=false;
+
+///data
+if (!_doMC) {
+bool _btag=false;
+bool _tripleOnlineBtagMatchOK = true;
+
+if (forceTripleOnlineBtagMatch) {
+      _tripleOnlineBtagMatchOK = false;
+      if (nJet>=nSelJet ) {
+    _tripleOnlineBtagMatchOK = (HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[0]],run) &&
+     HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[1]],run))
+      || (HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[0]],run) && HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[2]],run))
+      || (HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[1]],run) && HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[2]],run));
+      }
+    }
+
+
+
+
+if ( (theBJetTag[iiovl][leadingJets[0]]>btcut[iiovl]) && (theBJetTag[iiovl][leadingJets[1]]>btcut[iiovl]) &&  (theBJetTag[iiovl][leadingJets[2]]>btcut[iiovl]))
+_btag=true;
+
+if (_tripleOnlineBtagMatchOK)
+if ( _deltaR>1  && _btag )
+if (trgAccept)
+if (trgAccept  & (1<<0) || trgAccept  & (1<<1) || trgAccept  & (1<<2)) ///triggered data by Trigger0 or Trigger1 or Trigger2
+_isOk=true;
+
+}
+
+
+///MC
+if (_doMC) {
+if (  _deltaR>1 )  _isOk=true;
+
+
+
+///OfflineBtag (triple-tag) weigting
+
+          for (int iJ=0; iJ<nSelJet; ++iJ)
+           _offlineBtagWeight *=   bTagEffOffline->eff(_theFlav[iJ],sbtag[iiovl].c_str(),ptJet[leadingJets[iJ]],etaJet[leadingJets[iJ]]);
+
+///OnlineBtag (double-tag)
+
+double sumdb=0e0;
+for (int iJ=0; iJ<nSelJet; ++iJ)
+for (int iiJ=0; iiJ<nSelJet; ++iiJ)
+{
+        if (iiJ==iJ) continue;
+        int kkk=nSelJet-iJ - iiJ;
+///     if (kkk<0) continue;
+
+        double _wgt = bTagReleffOnline->eff(_theFlav[iJ],sbtag[iiovl].c_str(),ptJet[leadingJets[iJ]],etaJet[leadingJets[iJ]]);
+        _wgt *=  bTagReleffOnline->eff(_theFlav[iiJ],sbtag[iiovl].c_str(),ptJet[leadingJets[iiJ]],etaJet[leadingJets[iiJ]]);
+        _wgt *= (1e0-bTagReleffOnline->eff(_theFlav[kkk],sbtag[iiovl].c_str(),ptJet[leadingJets[kkk]],etaJet[leadingJets[kkk]]));
+
+        sumdb+=_wgt;
+}
+
+        _onlineBtagWeight=sumdb/2e0;
+
+
+
+
+///add patter TTT
+        double _T1 =  bTagReleffOnline->eff(_theFlav[0],sbtag[iiovl].c_str(),ptJet[leadingJets[0]],etaJet[leadingJets[0]]);
+        double _T2 =  bTagReleffOnline->eff(_theFlav[1],sbtag[iiovl].c_str(),ptJet[leadingJets[1]],etaJet[leadingJets[1]]);
+        double _T3 =  bTagReleffOnline->eff(_theFlav[2],sbtag[iiovl].c_str(),ptJet[leadingJets[2]],etaJet[leadingJets[2]]);
+
+        _onlineBtagWeight += _T1*_T2*_T3;
+
+
+} ///end of doMC
+
+int _goodnPV=0;
+
+///select PV
+for(int ii=0;ii<nPV;ii++)
+{
+if (ndofPV[ii]>4 )
+if (fabs(zPV[ii])<24 )
+//if (sqrt( xPV[ii]*xPV[ii]+yPV[ii]*yPV[ii])<2  )
+_goodnPV++;
+
+}
+
+
+if (_isOk) {
+//_PVHist0->Fill(nPV,weight*_onlineBtagWeight*_offlineBtagWeight);
+_PVHist0->Fill(_goodnPV,weight*_onlineBtagWeight*_offlineBtagWeight);
+
+//cout<<"nPV = "<<nPV<<endl;
+
+
+
+#if defined(PU_ALEX)
+
+if (_pileup) {
+
+weight*=_pileup->PUWeightS6(nPUInTime);
+if (iE%6000==0) { 
+cout<<"PU weight = "<<_pileup->PUWeightS6(nPUTruth);
+cout<< '\xd';
+}
+
+}
+
+#else
+if (_pileup) {
+weight*=_pileup->GetWeight(nPUTruth);
+//cout<<"PU weight = "<<_pileup->GetWeight(nPUInTime)<<endl;
+}
+#endif
+
+//_PVHist1->Fill(nPV,weight*_onlineBtagWeight*_offlineBtagWeight);
+_PVHist1->Fill(_goodnPV,weight*_onlineBtagWeight*_offlineBtagWeight);
+
+
+
+
+}
+
+
+} /// end of main loop
+
+cout<<" Integral  of PV histogram before PU "<<_PVHist0->Integral()<<endl;
+cout<<" Integral  of PV histogram after PU  "<<_PVHist1->Integral()<<endl;
+//_PVHist0->Write();
+//_PVHist1->Write();
+
+_file->Write();
+_file->Close();
+
+if (_pileup) delete _pileup;
+
+return 0;
+}
