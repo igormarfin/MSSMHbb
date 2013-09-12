@@ -1,0 +1,214 @@
+#ifndef HbbTrigWeight_h
+#define HbbTrigWeight_h
+
+#include <iostream>
+#include <string>
+#include <vector>
+
+#include "Analysis/Utilities/interface/HbbTrigger.h"
+
+
+// helper class to interface parameterized trigger efficiencies from HbbTrigger.h
+// to TripleBtagAnalysis macro
+class HbbTrigWeight {
+public:
+  HbbTrigWeight();
+  HbbTrigWeight(const std::vector<std::string> &theGtl, const std::vector<std::string> &theFilter);
+  ~HbbTrigWeight();
+
+  void getTrigWeight(bTagEff* theBTagReleffOnline,
+		     BTag::WP bTagWP,
+		     const std::vector<JetFlavor::Code> &jetFlavorCodes,
+		     const std::vector<float> &thePt,
+		     const std::vector<float> &theEta,
+		     std::vector<float> weights) const {
+    this->getTrigWeight(theBTagReleffOnline,bTagWP,jetFlavorCodes,thePt,theEta,weights,false);
+  }
+
+  void getTrigWeightL1L2Only(bTagEff* theBTagReleffOnline,
+			     BTag::WP bTagWP,
+			     const std::vector<JetFlavor::Code> &jetFlavorCodes,
+			     const std::vector<float> &thePt,
+			     const std::vector<float> &theEta,
+			     std::vector<float> weights) const {
+    this->getTrigWeight(theBTagReleffOnline,bTagWP,jetFlavorCodes,thePt,theEta,weights,true);
+  }
+
+
+  // deprecated signatures; for backward compatibility
+  void getTrigWeight(bTagEff* theBTagReleffOnline,
+		     const char* theBtag,
+		     const int* theFc,
+		     const std::vector<float> &thePt,
+		     const std::vector<float> &theEta,
+		     std::vector<float> weights) const;
+  void getTrigWeightL1L2Only(bTagEff* theBTagReleffOnline,
+			     const char* theBtag,
+			     const int* theFc,
+			     const std::vector<float> &thePt,
+			     const std::vector<float> &theEta,
+			     std::vector<float> weights) const;
+  
+
+
+private:
+  static bool deprecatedFunctionsCalled_;
+
+  const std::vector<std::string> gtl_;  // genericTriggerList
+  const unsigned int nPeriod_;
+
+  std::vector< std::vector<HbbTrigger*> > triggers_;        // triggers[nGtl][nPeriod_]
+
+  void getTrigWeight(bTagEff* theBTagReleffOnline,
+		     BTag::WP bTagWP,
+		     const std::vector<JetFlavor::Code> &jetFlavorCodes,
+		     const std::vector<float> &thePt,
+		     const std::vector<float> &theEta,
+		     std::vector<float> weights,
+		     const bool L1L2Only) const;
+};
+
+
+bool HbbTrigWeight::deprecatedFunctionsCalled_ = false;
+
+
+HbbTrigWeight::HbbTrigWeight()
+  : gtl_(std::vector<std::string>(0)), nPeriod_(0) {
+  std::cout << "HbbTrigWeight: Standard constructor called, this should not happen" << std::endl;
+}
+
+
+HbbTrigWeight::HbbTrigWeight(const std::vector<std::string> &theGtl, const std::vector<std::string> &theFilter) 
+  : gtl_(theGtl), nPeriod_(2) {
+
+  // first set the filter pattern
+  unsigned int filterPattern = 0;
+  if (theFilter.size() > 0) {
+    for (std::vector<std::string>::const_iterator fit=theFilter.begin(); fit != theFilter.end(); ++fit) {
+      std::vector<std::string>::const_iterator tSlotBtag = std::find(gtl_.begin(), gtl_.end(), *fit);
+      if (tSlotBtag != gtl_.end()) {
+	filterPattern = filterPattern | (1<<(tSlotBtag - gtl_.begin()));
+      } else {
+	std::cout << "HbbTrigWeight: Filter trigger " << *fit << " not found in any slot" << std::endl;
+      }
+    }
+  } else {
+    filterPattern = ~0;  // set all filter bits to one
+  }
+    
+  // create array that will hold pointer to one HbbTrigger object for each generic trigger
+  triggers_ = std::vector< std::vector<HbbTrigger*> >(gtl_.size());
+  for(std::vector< std::vector<HbbTrigger*> >::iterator it = triggers_.begin();
+      it != triggers_.end(); ++it) {
+    it->resize(nPeriod_,NULL);
+  }
+  for (unsigned int ib=0; ib<gtl_.size(); ++ib) {
+    for (unsigned int iPeriod=0; iPeriod<nPeriod_; ++iPeriod) {
+      int robervalTNumber = -1;
+      if (filterPattern & (1<<ib)) {
+	if ( (gtl_.at(ib) == "HLT_CentralJet46_BTagIP3D_CentralJet38_BTagIP3D")
+	     || (gtl_.at(ib) == "HLT_CentralJet46_CentralJet38_DiBTagIP3D") ) {
+	  robervalTNumber = 0;
+	} else if (gtl_.at(ib) == "HLT_CentralJet46_CentralJet38_CentralJet20_DiBTagIP3D") {
+	  robervalTNumber = 1;
+	} else if (gtl_.at(ib) == "HLT_CentralJet60_CentralJet53_DiBTagIP3D") {
+	  robervalTNumber = 2;
+	}
+	std::cout << "HbbTrigWeight: assign robervalTNumber= " << robervalTNumber
+		  << " for trigger " << gtl_.at(ib) << std::endl;
+      }
+      if ( robervalTNumber >= 0 ) {
+	triggers_[ib][iPeriod] = new HbbTrigger( robervalTNumber );
+	if (  robervalTNumber == 1 ) triggers_[ib][iPeriod]->setPeriod( iPeriod );
+      }
+    }
+  }
+}
+
+
+HbbTrigWeight::~HbbTrigWeight() {
+  if( HbbTrigWeight::deprecatedFunctionsCalled_ ) {
+    std::cerr << "\n\nWARNING: one or more deprecated functions in HbbTrigWeight have been used!\n" << std::endl;
+  }
+}
+
+
+void HbbTrigWeight::getTrigWeight(bTagEff* theBTagReleffOnline,
+				  BTag::WP bTagWP,
+				  const std::vector<JetFlavor::Code> &jetFlavorCodes,
+				  const std::vector<float> &thePt,
+				  const std::vector<float> &theEta,
+				  std::vector<float> weights,
+				  const bool L1L2Only) const {
+  // first compute the online btag relative efficiency
+  float obeff[3];
+    
+  for (int iJ=0; iJ<3; ++iJ) {
+    // correct for the fact that MinTag4 has only 94% of efficiency wrt. MinTag3
+    obeff[iJ] = theBTagReleffOnline->eff(jetFlavorCodes.at(iJ),bTagWP,thePt[iJ],theEta[iJ]) / 0.94;
+  }
+  float obtRel = obeff[0] * obeff[1] + obeff[0] * obeff[2] + obeff[1] * obeff[2]
+    - 2 * obeff[0] * obeff[1] * obeff[2];
+  if ( (obtRel < 0) || (obtRel > 1.) ) {
+    std::cout << "HbbTrigWeight::GetTrigWeight: bad obtRel = " << obtRel << std::endl;
+    obtRel = 0;
+  }
+    
+  if (L1L2Only) obtRel = 1;
+    
+  for (unsigned int ib=0; ib<gtl_.size(); ++ib) {
+    weights[ib] = 0;
+    if ( (triggers_[ib][0] != NULL) && (triggers_[ib][1] != NULL) ) {
+      // mix according to period fractions
+      float frac0 = 246.039 / (246.039 + 731.275);
+      float frac1 = 1. - frac0;
+      weights[ib] = obtRel * ( frac0 * triggers_[ib][0]->getEfficiency(thePt[0],thePt[1],thePt[2])
+			       + frac1 * triggers_[ib][1]->getEfficiency(thePt[0],thePt[1],thePt[2]) );
+    }
+    /*       if (ib == 0) { */
+    /* 	std::cout << "flav= " << theFc[0] << " " << theFc[1] << " " << theFc[2] */
+    /* 		  << " pt= " <<  thePt[0] << " " << thePt[1] */
+    /* 		  << " L1L2= " << triggers_[ib]->getEfficiency(thePt[0],thePt[1],thePt[2]) */
+    /* 		  << " obtRel= " << obtRel << std::endl; */
+    /*       } */
+  }
+}
+
+
+// deprecated signatures; for backward compatibility
+void HbbTrigWeight::getTrigWeight(bTagEff* theBTagReleffOnline,
+				  const char* theBtag,
+				  const int* theFc,
+				  const std::vector<float> &thePt,
+				  const std::vector<float> &theEta,
+				  std::vector<float> weights) const {
+  HbbTrigWeight::deprecatedFunctionsCalled_ = true;
+  
+  JetFlavor::Codes jfc;
+  for(int i = 0; i < 3; ++i) {
+    jfc.push_back( JetFlavor::fromInt(theFc[i]) );
+  }
+  BTag::WP btag = BTag::fromString(theBtag);
+
+  this->getTrigWeight(theBTagReleffOnline,btag,jfc,thePt,theEta,weights,false);
+}
+
+void HbbTrigWeight::getTrigWeightL1L2Only(bTagEff* theBTagReleffOnline,
+					  const char* theBtag,
+					  const int* theFc,
+					  const std::vector<float> &thePt,
+					  const std::vector<float> &theEta,
+					  std::vector<float> weights) const {
+  HbbTrigWeight::deprecatedFunctionsCalled_ = true;
+  
+  JetFlavor::Codes jfc;
+  for(int i = 0; i < 3; ++i) {
+    jfc.push_back( JetFlavor::fromInt(theFc[i]) );
+  }
+  BTag::WP btag = BTag::fromString(theBtag);
+
+  this->getTrigWeight(theBTagReleffOnline,btag,jfc,thePt,theEta,weights,true);
+}
+
+
+#endif

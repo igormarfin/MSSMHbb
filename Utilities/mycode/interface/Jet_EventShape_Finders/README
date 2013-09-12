@@ -1,0 +1,59 @@
+========================================================================
+
+Overview
+--------
+Physics analysis needs some of the standard utilities like JetFinders
+and event shape analyzers. We have translated the Jade, Jade E, and
+Durham jet algorithms and the JETSET thrust & event shape routines
+to C++/Root.
+
+This directory contains source files, and Makefile to make two shared 
+libs, libJetFind.so and libEventShape.so, containing JetFinders and 
+event shape analyzers, respectively. 
+To create the shared libs, modify Makefile (the default Makefile is
+for SunOS.) by referring to the $ROOTSYS/test/Makefile in your system.
+
+Example Macro
+-------------
+The directory contains two sample programs, sample_jet.cxx and 
+sample_thrust.cxx. These macros use the events generated
+by a test program of Event and libEvent.so, in $ROOTSYS/test.
+
+sample_jet.cxx    :: Using the Jet Finder (Jade algorithm, for
+                     example) in libJetFinder.so 
+
+sample_thrust.cxx :: Using the event shape analyzers (getting 
+                     thrust, major, and minor) in libEventShape.so. 
+    
+
+
+                       Sep 03, 1999  
+                       M. Iwasaki  (masako@slac.stanford.edu)
+
+History
+-------
+
+May 13 2000    1. Change JetFinder and EventShape classes:
+(M.Iwasaki)
+	            JetFinder::
+                    setEvent()     --> setPartList()
+                    jet()          --> jet4vec()
+		    fewestTracks() --> fewestParts()
+
+		    EventShape::
+                    setEvent()     --> setPartList()
+
+               2. Merge JadeJetFinder, JadeEJetFinder, DurhamJetFinder, 
+                  and JetFinder into JetFinder.
+
+               3. Modify sample programs
+
+
+Aug 15 2000    1. Change calinvmass. Remove DurhamJetFinder, JadeJetFinder, 
+(M.Iwasaki)       and JadeEJetFinder classes.
+               2. Add setDURHAM, setJADE, and setJADEE. Now we can change 
+                  algorithms by one of them.
+========================================================================
+
+
+

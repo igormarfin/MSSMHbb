@@ -1,0 +1,154 @@
+#include <vector>
+#include <string>
+#include <math.h>
+#include <TFile.h>
+#include <TH1.h>
+#include <TF1.h>
+
+
+
+#include "CondFormats/JetMETObjects/interface/JetCorrectorParameters.h"
+#include "CondFormats/JetMETObjects/interface/JetCorrectionUncertainty.h"
+#include <vector>
+
+///for fat jets support
+
+#include "Analysis/Utilities/interface/bTagEff.h"
+
+class HbbSyst {
+
+ public:
+
+  HbbSyst();
+  ~HbbSyst();
+
+  // JES uncertainty : Up = +1sigma, Down = -1sigma;
+  // this is relative uncertainty, hence jet energy and momentum
+  // should be scales as 
+  // p(E) = p(E)*(1+JESuncertaintyUp) or
+  // p(E) = p(E)*(1-JESuncertaintyDown)
+  float getJESuncertaintyUp(float jetPt, float jetEta); 
+  float getJESuncertaintyDown(float jetPt, float jetEta);
+  float getJESuncertainty(float jetPt, float jetEta, bool up);
+
+  // BTag Scale Factor (Data/MC)
+  float getSFtag(float jetPt, float jetEta, int iFlav, int tagger);
+
+  // BTag Scale Factor uncertainty : Up = +1sigma, Down= -2sigma
+  float getSFuncertaintyUp(float jetPt, float jetEta, int iFlav, int tagger);
+  float getSFuncertaintyDown(float jetPt, float jetEta, int iFlav, int tagger);
+  // BTag Scale Factor uncertainty : up = true (Up), = false (Down)
+  float getSFuncertainty(float jetPt, float jetEta, int iFlav, int tagger, bool up);
+
+  // BTag Scale Factor for b- and c-flavor jets
+  float getSFbc(float jetPt, float jetEta, int tagger);
+
+  // BTag Scale Factor for fat bb- and cc-flavor jets  /// for 2012 !
+  float getSFbb(float jetPt, float jetEta, int tagger);
+  float getSFcc(float jetPt, float jetEta, int tagger);
+
+  float getSFbbUncertaintyUp(float jetPt, float jetEta, int tagger);
+  float getSFccUncertaintyUp(float jetPt, float jetEta, int tagger);
+
+  float getSFbbUncertaintyDown(float jetPt, float jetEta, int tagger);
+  float getSFccUncertaintyDown(float jetPt, float jetEta, int tagger);
+  
+
+  float getSFbbUncertainty(float jetPt, float jetEta, int tagger, bool up);
+  float getSFccUncertainty(float jetPt, float jetEta, int tagger, bool up);
+
+
+  // BTag efficiency uncertainty for b and c-jets
+  float getSFbUncertaintyUp(float jetPt, float jetEta, int tagger);
+  float getSFcUncertaintyUp(float jetPt, float jetEta, int tagger);
+
+  float getSFbUncertaintyDown(float jetPt, float jetEta, int tagger);
+  float getSFcUncertaintyDown(float jetPt, float jetEta, int tagger);
+
+  float getSFbUncertainty(float jetPt, float jetEta, int tagger, bool up);
+  float getSFcUncertainty(float jetPt, float jetEta, int tagger, bool up);
+
+  // BTag Scale Factor for light flavor jets
+  float getSFlight(float jetPt, float jetEta, int tagger);
+
+  // Mistag rate uncertainty for udsg jets
+  float getSFlightUncertaintyDown(float jetPt, float jetEta, int tagger);
+  float getSFlightUncertaintyUp(float jetPt, float jetEta, int tagger);
+  float getSFlightUncertainty(float jetPt, float jetEta, int tagger, bool up);
+  
+  // Jet energy resolution uncertainty
+  // Need to match with generated jet
+  // pT->max[0.,pTgen+c*(pT-pTgen)] where "c" is the core resolution scaling factor, ie. the measured data/MC resolution ratio.
+  // https://twiki.cern.ch/twiki/bin/view/CMS/JetResolution
+  // Only eta dependence?
+  float getSFJER(float jetPt, float jetEta);
+  float getJERuncertaintyDown(float jetPt, float jetEta);
+  float getJERuncertaintyUp(float jetPt, float jetEta);
+  float getJERuncertainty(float jetPt, float jetEta, bool up);
+  int getJERetaBin(float jetEta);
+
+  // bool up
+  //    true  : uncertainty up
+  //    false : uncertainty down
+
+  // int iFlav 
+  //       0 : udsg
+  //       1 : c
+  //       2 : b
+
+
+///added for 2012! 
+
+  /// int iFlav
+  //	3:cc
+ //		4:bb
+
+  // int itagger 
+  //        0 : TCHPT
+  //        1 : TCHP6 
+  //        2 : CSVT
+  //        3 : SSVHPT
+
+  // Please note, that JES uncertainty is relative
+  // and BTag (mistag) uncertainty is absolute
+
+  // Scale factor for b-tagging of b- and c- jets is the same
+  // and uncertainties are 100% correlated
+
+ private:
+
+  JetCorrectionUncertainty* unc;
+
+///Only for 2012 !
+  bTagEff * _effCalc; 
+
+ 
+  TH1F * SFbErrorSSVHPTH;
+  TH1F * SFbErrorCSVTH;
+  TH1F * SFbErrorTCHPTH;
+  TH1F * SFbErrorTCHP6H;
+
+  float SFbcSSVHPT(float x);
+  float SFbcCSVT(float x);
+  float SFbcTCHPT(float x);
+  float SFbcTCHP6(float x);
+
+  float getSFbcUnc(float pt, int tagger);
+
+///2012 for fat jets
+  float getSFbbUnc(float jetPt, float jetEta, int tagger);
+  float getSFccUnc(float jetPt, float jetEta,int tagger);
+  float SFbbccUnc(float jetPt, float jetEta, int tagger, int flav);
+
+  TF1 * SFlightCSVT[3];
+  TF1 * SFlightSSVHPT[3];
+  TF1 * SFlightTCHPT[3];
+  TF1 * SFlightTCHP6[3];
+  
+  float etaBinJER[5];
+  float JERSF[5];
+  float JERerrorStat[5];
+  float JERerrorSystP[5];
+  float JERerrorSystM[5];
+
+};

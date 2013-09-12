@@ -1,0 +1,31 @@
+///usage: root -l run_over_masses.C
+///usage: root -l 'run_over_masses.C(30.)',  tanb=30
+///usage: root -l 'run_over_masses.C(30.,"/your/path/to/out.mhmax_7.root")',  tanb=30, /your/path/to/ to file out.mhmax_7.root, path must be ended by '/'
+
+
+//#include "XSCalculator.C"
+#include <TString.h>
+extern double XSCalculator(double mA, double tanb, TString pwd="./");
+ 
+
+#include <iostream>
+
+using namespace std;
+
+double masses[] = {90,100,120,150,180,200};
+
+
+void run_over_masses(double tanb_=20.,TString path_="./")
+{
+
+double _totxsect=0;
+for(unsigned int i=0;i<sizeof(masses)/sizeof(double);i++){
+double _xs=XSCalculator(masses[i],tanb_,path_);
+cout<<"\n\n"<<" XS, pb = "<<_xs<<"for MH="<<masses[i]<< "\n";
+ _totxsect+= _xs;
+}
+cout<<"\n\n"<<"Total XS, pb = "<<_totxsect<<"\n";
+
+return;
+}
+

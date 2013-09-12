@@ -1,0 +1,60 @@
+///Variables to skip
+///Version loose 2
+///Correlated M12 are left
+
+///Correlated with M12
+Et2byEt1
+djet1jet2pt
+dptjet1jet2
+dphijet1jet2
+
+///Unused anymore
+sumEt
+Et1
+Et2
+Et3
+sphericity_boost
+
+
+///Unused event shape vars
+
+///Correlated between 
+detajet3jet4
+
+///Unused in CM frame of all jets jets
+
+dphijet1jet2_boost
+dthetajet1jet2_boost
+
+///Unused in CM frame of 1,2 jets
+
+
+///non-physical vars
+nEvt
+flav_cont
+
+///flavor dependent and with dimensions vars
+Pt1
+Pt2
+Pt3
+Pt1_b
+Pt2_b
+Pt3_b
+Pt1_nonb
+Pt2_nonb
+Pt3_nonb
+Eta1_b
+Eta2_b
+Eta3_b
+Eta1_nonb
+Eta2_nonb
+Eta3_nonb
+M12
+Pt1_c
+Pt2_c
+Pt1_q
+Pt2_q
+Eta1_c
+Eta2_c
+Eta1_q
+Eta2_q

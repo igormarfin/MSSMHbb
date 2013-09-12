@@ -1,0 +1,405 @@
+#ifndef checkHLTBTagMatch_h
+#define checkHLTBTagMatch_h
+
+#include "Analysis/Utilities/interface/TriggerRunSelection.h"
+#include "Analysis/Utilities/interface/deltaR.h"
+#include <map>
+#include <exception>
+
+class checkHLTBtagMatch {
+ public:
+ 
+
+  std::vector<std::string> triggerFilterList;
+  std::vector<std::string> HLTBtagTriggerObjectFilterList;
+  std::vector<std::string> HLTBtagTriggerObjectList;
+  std::vector<std::string> L25BtagTriggerObjectFilterList;
+  std::vector<std::string> L25BtagTriggerObjectList;
+    
+  bool doTrigSelect;
+  TriggerRunSelection *trigSelector;
+  bool doL25matching; //default is true
+
+  void SetL25Matching(const bool s = true) { //default is true
+    doL25matching = s;
+  }
+  //default constructor not usable
+  checkHLTBtagMatch() {
+    std::cout << "error: default constructor called which should never ever happen. exit." << std::endl;
+    throw std::exception();
+  }
+  checkHLTBtagMatch(
+                    std::vector<std::string> tmptriggerFilterList,
+                    std::vector<std::string> tmpHLTBtagTriggerObjectFilterList,
+                    std::vector<std::string> tmpHLTBtagTriggerObjectList,
+                    bool tmpdoTrigSelect,
+                    TriggerRunSelection *tmptrigSelector = NULL
+                    ) : 
+    triggerFilterList(tmptriggerFilterList),
+    HLTBtagTriggerObjectFilterList(tmpHLTBtagTriggerObjectFilterList),
+    HLTBtagTriggerObjectList(tmpHLTBtagTriggerObjectList),
+    doTrigSelect(tmpdoTrigSelect),
+    trigSelector(tmptrigSelector),
+    doL25matching(true)
+      {
+        //simple sanity checks
+        if(triggerFilterList.size() != HLTBtagTriggerObjectFilterList.size())
+          {
+            std::cout << "ERROR: triggerFilterLists.size != HLTBtagTriggerObjectFilterList.size: " << triggerFilterList.size() << " " << HLTBtagTriggerObjectFilterList.size() << ".exit." << std::endl;
+            throw std::exception();
+          }
+        
+        std::map<std::string, bool> mapObjectFilterList;
+        bool notfound = false;
+        for(
+            std::vector<std::string>::const_iterator it = HLTBtagTriggerObjectFilterList.begin();
+            it != HLTBtagTriggerObjectFilterList.end();
+            it++
+            )
+          {
+            mapObjectFilterList[(*it)] = true;
+            if(
+               std::find(
+                         HLTBtagTriggerObjectList.begin(), HLTBtagTriggerObjectList.end(), (*it)
+                         ) == HLTBtagTriggerObjectList.end()
+               )
+              {
+                notfound = true;
+                std::cout << "ERROR : HLT Btag trigger object filter list contains an element which was not found in the HLT btag trigger object list: " << (*it) << " not found. exit."<< std::endl;
+              }
+          }
+        if(notfound)
+          throw std::exception();
+         
+        
+        if(mapObjectFilterList.size() > HLTBtagTriggerObjectList.size())
+          {
+            std::cout << "ERROR: HLT Btag trigger object filter list is larger (" << mapObjectFilterList.size() << ") than trigger object list (" << HLTBtagTriggerObjectList.size() << ") in the ntuple! exit." << std::endl;
+            throw std::exception();
+            throw std::exception();
+          }
+        
+        if(HLTBtagTriggerObjectFilterList.size() == 0)
+          {
+            std::cout << "ERROR: HLT Btag trigger object filter list is empty?!?! exit." << std::endl;
+            throw std::exception();
+          }
+        if(doTrigSelect && trigSelector == NULL)
+          {
+            std::cout << "ERROR: trigger selection is on but no TriggerRunSelection is provided! exit." << std::endl;
+            throw std::exception();
+          }
+      }
+    int SetL25( std::vector<std::string> tmpL25BtagTriggerObjectFilterList,
+                std::vector<std::string> tmpL25BtagTriggerObjectList) {
+      L25BtagTriggerObjectFilterList = tmpL25BtagTriggerObjectFilterList;
+      L25BtagTriggerObjectList = tmpL25BtagTriggerObjectList;
+      
+      //simple sanity checks
+      if(triggerFilterList.size() != L25BtagTriggerObjectFilterList.size())
+        {
+          std::cout << "ERROR: triggerFilterLists.size != L25BtagTriggerObjectFilterList.size: " << triggerFilterList.size() << " " << L25BtagTriggerObjectFilterList.size() << ".exit." << std::endl;
+          throw std::exception();
+        }
+        
+      std::map<std::string, bool> mapObjectFilterList;
+      bool notfound = false;
+      for(
+          std::vector<std::string>::const_iterator it = L25BtagTriggerObjectFilterList.begin();
+          it != L25BtagTriggerObjectFilterList.end();
+          it++
+          )
+        {
+          mapObjectFilterList[(*it)] = true;
+          if(
+             std::find(
+                       L25BtagTriggerObjectList.begin(), L25BtagTriggerObjectList.end(), (*it)
+                       ) == L25BtagTriggerObjectList.end()
+             )
+            {
+              notfound = true;
+              std::cout << "ERROR : L25 Btag trigger object filter list contains an element which was not found in the L25 btag trigger object list: " << (*it) << " not found. exit."<< std::endl;
+            }
+        }
+      if(notfound)
+        throw std::exception();
+        
+      if(mapObjectFilterList.size() > L25BtagTriggerObjectList.size())
+        {
+          std::cout << "ERROR: L25 Btag trigger object filter list is larger (" << mapObjectFilterList.size() << ") than trigger object list (" << L25BtagTriggerObjectList.size() << ") in the ntuple! exit." << std::endl;
+          throw std::exception();
+        }
+        
+      if(L25BtagTriggerObjectFilterList.size() == 0)
+        {
+          std::cout << "ERROR: L25 Btag trigger object filter list is empty?!?! exit." << std::endl;
+          throw std::exception();
+        }
+      
+      return 1;
+    }
+
+    bool check(unsigned int isJetWithHltBtagBitPattern, unsigned int isJetWithL25BtagBitPattern, int theRun = -1)
+    {
+
+
+      std::string L25BtagTriggerObjectName("");
+      int triggerindex = -1;
+
+
+      if(!doL25matching) {
+        return checkL3(isJetWithHltBtagBitPattern,theRun,triggerindex);
+        std::cout << "error in hltbtag matching. this message should never appear" << std::endl;
+        throw std::exception();
+      }
+        
+
+
+      
+      //if a trigger selection according to the scenario is applied ...
+      if(doTrigSelect)
+        {
+          //the name of the trigger for the run theRun is extracted
+          std::string triggername = trigSelector->getTriggerName(theRun);
+          
+          //loop over all trigger in the filtered list to get the index number of the element
+          for( 
+              unsigned int i = 0;
+              i < triggerFilterList.size();
+              i++
+              )
+            {
+              if(triggerFilterList.at(i) == triggername)
+                {
+                  triggerindex = i;
+                  //the index number is now known and the name of the L25 btag trigger object can be copied
+                  L25BtagTriggerObjectName = L25BtagTriggerObjectFilterList.at(i);
+                  break;
+                }
+            }
+          if(L25BtagTriggerObjectName == "")
+            {
+              std::cout << "ERROR: No associated L25 btag trigger object name found! exit." << std::endl;
+              throw std::exception();
+            }
+        }
+  
+      
+      bool matched = false;
+      
+      //loop over ALL L25BTag trigger objects which are in the ntuples
+      for( 
+          unsigned int i = 0;
+          i < L25BtagTriggerObjectList.size() && !matched; 
+          i++
+          )
+        {
+          //check whether a trigger selection according to the scenario is applied.
+          //if so, compare the name of the L25 btag trigger object in the global list with the one
+          //associated with the trigger as extracted from the trigger run selection
+          if(doTrigSelect && L25BtagTriggerObjectList.at(i) == L25BtagTriggerObjectName) {
+            //check bit i in the pattern
+            if (isJetWithL25BtagBitPattern & (1<<i)) {
+              //bit is 1
+              matched = true;
+              break;
+            } 
+            
+          }
+
+
+          
+          //check for any matching if no trigger selection according to the scenario is applied
+          //any means only trigger objects which are stored in the filtered list
+          if(!doTrigSelect)
+            {
+              for( unsigned int j = 0; j < L25BtagTriggerObjectFilterList.size(); j++)
+                {
+                  if(L25BtagTriggerObjectList.at(i) == L25BtagTriggerObjectFilterList.at(j)) {
+
+                    if (isJetWithL25BtagBitPattern & (1<<i)) {
+
+                      //bit is 1
+                      matched = true;
+                      break;
+                    } 
+            
+                  }
+                }
+            }
+        }
+
+      return matched && checkL3(isJetWithHltBtagBitPattern,theRun,triggerindex);
+    }
+
+    //this method checks whether for a particular jet in a run a matching HLT Btag trigger object was found.
+    bool check(unsigned int /*isJetWithHltBtagBitPattern*/, int /*theRun = -11*/)
+    {
+      std::cout << "Error: Method call 'check' obsolete, because it would only test matching to L3 objects." << std::endl;
+      std::cout << "Use bool check(unsigned int isJetWithHltBtagBitPattern, unsigned int isJetWithL25BtagBitPattern, int theRun) instead." << std::endl;
+      throw std::exception();
+      return false;
+    }
+    bool checkL3(unsigned int isJetWithHltBtagBitPattern, int theRun, int triggerindex = -1)
+    {
+      std::string HLTBtagTriggerObjectName("");
+
+      //if a trigger selection according to the scenario is applied ...
+      if(triggerindex == -1 && doTrigSelect)
+        {
+          //the name of the trigger for the run theRun is extracted
+          std::string triggername = trigSelector->getTriggerName(theRun);
+          
+          //loop over all trigger in the filtered list to get the index number of the element
+          for( 
+              unsigned int i = 0;
+              i < triggerFilterList.size();
+              i++
+              )
+            {
+              if(triggerFilterList.at(i) == triggername)
+                {
+                  triggerindex = i;
+                  //the index number is now known and the name of the L3 btag trigger object can be copied
+                  HLTBtagTriggerObjectName = HLTBtagTriggerObjectFilterList.at(i);
+                  break;
+                }
+            }
+          if(HLTBtagTriggerObjectName == "")
+            {
+              std::cout << "ERROR: No associated L3 btag trigger object name found! exit." << std::endl;
+              throw std::exception();
+            }
+        }
+  
+
+
+
+
+
+      //if a trigger selection according to the scenario is applied ...
+      if(doTrigSelect)
+        {
+          if(triggerindex < 0) {
+            std::cout << "error: Trigger index < 0. exit." << std::endl;
+            throw std::exception();
+          }
+          HLTBtagTriggerObjectName = HLTBtagTriggerObjectFilterList.at(triggerindex);
+          
+          if(HLTBtagTriggerObjectName == "")
+            {
+              std::cout << "ERROR: No associated HLT btag trigger object name found! exit." << std::endl;
+              throw std::exception();
+            }
+        }
+  
+      
+      bool matched = false;
+      
+      //loop over ALL HLTBTag trigger objects which are in the ntuples
+      for( 
+          unsigned int i = 0;
+          i < HLTBtagTriggerObjectList.size() && !matched; 
+          i++
+          )
+        {
+          //check whether a trigger selection according to the scenario is applied.
+          //if so, compare the name of the HLT btag trigger object in the global list with the one
+          //associated with the trigger as extracted from the trigger run selection
+          if(doTrigSelect && HLTBtagTriggerObjectList.at(i) == HLTBtagTriggerObjectName) {
+            //check bit i in the pattern
+            if (isJetWithHltBtagBitPattern & (1<<i)) {
+              //bit is 1
+              matched = true;
+              break;
+            } 
+            
+          }
+          
+          //check for any matching if no trigger selection according to the scenario is applied
+          //any means only trigger objects which are stored in the filtered list
+          if(!doTrigSelect)
+            {
+              for( unsigned int j = 0; j < HLTBtagTriggerObjectFilterList.size(); j++)
+                {
+                  if(HLTBtagTriggerObjectList.at(i) == HLTBtagTriggerObjectFilterList.at(j)) {
+                    if (isJetWithHltBtagBitPattern & (1<<i)) {
+                      //bit is 1
+                      matched = true;
+                      break;
+                    } 
+            
+                  }
+                }
+            }
+        }
+    
+      return matched;
+    }
+    
+   /*  double CalculateDeltaR (const double phi1, const double phi2, const double eta1, const double eta2) */
+/*     { */
+      
+/*       float delta_phi = phi1 - phi2; */
+      
+/*       if(delta_phi > TMath::Pi()) delta_phi -= 2.0*TMath::Pi(); */
+/*       if (delta_phi< -1.0*TMath::Pi()) delta_phi += 2.0*TMath::Pi(); */
+      
+/*       const float delta_eta = eta1 - eta2; */
+      
+/*       const float delta_R = TMath::Sqrt(delta_phi*delta_phi + delta_eta*delta_eta); */
+      
+/*       return delta_R; */
+/*     } */
+
+
+    //this methods simply checks the matching consistency between the bit pattern and the stored objects in the ntuple
+    int testinternalconsistency(unsigned int isJetWithHltBtagBitPattern,
+                                unsigned int isJetWithL25BtagBitPattern,
+                                float jetEta,
+                                float jetPhi, 
+                                int l25NumberOfJets,
+                                float *l25EtaJet,
+                                float *l25PhiJet,
+                                int l3NumberOfBJets,
+                                float *l3EtaBJet,
+                                float *l3PhiBJet
+                                ) {
+      bool L3matched_pattern = false, L25matched_pattern = false, L3matched = false, L25matched = false;
+      if (isJetWithHltBtagBitPattern & (1<<0)) {
+        //bit is 1
+        L3matched_pattern = true;
+      }
+      
+      if (isJetWithL25BtagBitPattern & (1<<0)) {
+        //bit is 1
+        L25matched_pattern = true;
+      } 
+     
+      for(int il25 = 0; il25 < l25NumberOfJets; il25++) {
+        if(CalculateDeltaR(jetPhi, l25PhiJet[il25], jetEta, l25EtaJet[il25]) < 0.5) {
+          L25matched = true;
+          break;
+        }
+      }
+      for(int il3 = 0; il3 < l3NumberOfBJets; il3++) {
+        if(CalculateDeltaR(jetPhi, l3PhiBJet[il3], jetEta, l3EtaBJet[il3]) < 0.5) {
+          L3matched = true;
+          break;
+        }
+      }
+      
+      const bool pattern = L3matched_pattern && L25matched_pattern;
+      const bool objects = L25matched && L3matched;
+
+      if(pattern != objects) {
+        std::cout << "error: serious problem. the bit pattern for L25,L3 matching of jets is inconsistent w.r.t. to the objects stored in the ntuple." << std::endl;
+        throw std::exception();
+      }
+      
+      return 1;
+    }
+
+};
+
+#endif // #ifdef 

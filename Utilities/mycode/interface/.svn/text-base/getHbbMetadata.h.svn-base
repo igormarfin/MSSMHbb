@@ -1,0 +1,192 @@
+#ifndef getHbbMetadata_h
+#define getHbbMetadata_h
+#include <exception>
+// #include "readhbb.h"
+
+int getHbbL25Metadata(
+                   TFileCollection& fc,
+                   std::vector<std::string>& L25BtagTriggerObjectList
+                   ) {
+  if (fc.GetNFiles() <=0) {
+    std::cout << "error: getHbbL25Metadata: file list empty" << std::endl;
+    throw std::exception();
+    return 0;
+  }
+  
+  bool tl_L25BTagJetFilterName = false;
+  
+ TIter iter( (TCollection*) fc.GetList() );
+  while (TFileInfo* tfi = (TFileInfo*) &(*(iter.Next()))) {
+    TFile* fg = TFile::Open( tfi->GetCurrentUrl()->GetUrl() );
+    if (! tl_L25BTagJetFilterName) {
+      TH1F* tlHist_L25BTagJetFilterName = (TH1F*) fg->Get("hbbanalysis/tlHist_hltL25JetFilterName");
+      if (tlHist_L25BTagJetFilterName != NULL) {
+	for (int ibin=1; ibin<= tlHist_L25BTagJetFilterName->GetXaxis()->GetNbins(); ++ibin) {
+	  L25BtagTriggerObjectList.push_back(tlHist_L25BTagJetFilterName->GetXaxis()->GetBinLabel( ibin ));
+	  std::cout << "getHbbL25Metadata: found L25 Btag trigger object " << tlHist_L25BTagJetFilterName->GetXaxis()->GetBinLabel( ibin )
+		    << std::endl;
+	}
+	tl_L25BTagJetFilterName = true;
+      } else {
+	std::cout << "error: tlHistL25BTagJetFilterName histogram not found" << std::endl;
+        throw std::exception();
+      }
+    }
+    delete fg;
+    break;  //only need first file to extract GTL
+  }
+
+  std::cout << "Number of L25 Btag trigger objects read: " << L25BtagTriggerObjectList.size() << std::endl;
+  
+
+  return 1;
+
+
+  
+}
+
+int getHbbMetadata(
+                   TFileCollection& fc,
+                   std::vector<std::string>& genericTriggerList,
+                   std::vector<std::string>& HLTBtagTriggerObjectList,
+                   const float targetLumi,
+		    float& lumiScaleFac,const bool doMC
+                   ) {
+  
+  // extracts the following metadata from the Hbb analysis ntuples:
+  //     list of generic triggers (= dictionary for bit number convention)
+  //     list of HLT Btag trigger objects
+  //     total number of input events before any filtering
+  //     generator cross sections and filter efficiency
+  // computes lumi scaling factor corresponding to given target integrated luminosity
+
+  lumiScaleFac = 1;
+  int nInputEvents = 0;
+  // first get the generic trigger list from the first file
+  if (fc.GetNFiles() <=0) {
+    std::cout << "error: getHbbMetadata: file list empty" << std::endl;
+    throw std::exception();
+    return 0;
+  }
+
+  bool gtlDone = false;
+  bool tl_hltBTagJetFilterName = false;
+  TIter iter( (TCollection*) fc.GetList() );
+  while (TFileInfo* tfi = (TFileInfo*) &(*(iter.Next()))) {
+    //std::cout << "Open file " << tfi->GetCurrentUrl()->GetFile() << std::endl; //do not need this output?
+    //std::cout << "Open Url " << tfi->GetCurrentUrl()->GetUrl() << std::endl;
+    TFile* fg = TFile::Open( tfi->GetCurrentUrl()->GetUrl() );
+
+    if (doMC) {
+      TH1F* eventCount = (TH1F*) fg->Get("InputEvents/EventCount");
+      if (eventCount != NULL) {
+	//std::cout << "Adding to event count " << eventCount->GetEntries() << std::endl;
+	nInputEvents += eventCount->GetEntries();
+      } else {
+	std::cout << "error: eventCount histogram not found" << std::endl;
+        throw std::exception();
+      }
+    }
+
+    if (! gtlDone) {
+      TH1F* gtlHist = (TH1F*) fg->Get("hbbanalysis/gtlHist");
+      if (gtlHist != NULL) {
+	for (int ibin=1; ibin<= gtlHist->GetXaxis()->GetNbins(); ++ibin) {
+	  genericTriggerList.push_back(gtlHist->GetXaxis()->GetBinLabel( ibin ));
+	  std::cout << "getHbbMetadata: found generic trigger " << gtlHist->GetXaxis()->GetBinLabel( ibin )
+		    << std::endl;
+	}
+	gtlDone = true;
+      } else {
+	std::cout << "error: gtlHist histogram not found" << std::endl;
+        throw std::exception();
+      }
+    }
+
+    if (! tl_hltBTagJetFilterName) {
+      TH1F* tlHist_hltBTagJetFilterName = (TH1F*) fg->Get("hbbanalysis/tlHist_hltBTagJetFilterName");
+      if (tlHist_hltBTagJetFilterName != NULL) {
+	for (int ibin=1; ibin<= tlHist_hltBTagJetFilterName->GetXaxis()->GetNbins(); ++ibin) {
+	  HLTBtagTriggerObjectList.push_back(tlHist_hltBTagJetFilterName->GetXaxis()->GetBinLabel( ibin ));
+	  std::cout << "getHbbMetadata: found HLT Btag trigger object " << tlHist_hltBTagJetFilterName->GetXaxis()->GetBinLabel( ibin )
+		    << std::endl;
+	}
+	tl_hltBTagJetFilterName = true;
+      } else {
+	std::cout << "error: tlHisthltBTagJetFilterName histogram not found" << std::endl;
+        throw std::exception();
+      }
+    }
+    delete fg;
+    if (! doMC) break;  // for real data only need first file to extract GTL
+  }
+
+  std::cout << "Number of generic triggers read: " << genericTriggerList.size() << std::endl;
+  std::cout << "Number of HLT Btag trigger objects read: " << HLTBtagTriggerObjectList.size() << std::endl;
+  
+  if (doMC) std::cout << "Total count of input events: " << nInputEvents << std::endl;
+
+  if (doMC) {
+    // now chain the GenInfo tree to access cross section & filter efficiency
+    TChain gInfo("hbbanalysis/GenInfo");
+    gInfo.AddFileInfoList((TCollection*) fc.GetList());
+    TTree* gInfoTree = &gInfo;
+    int nGInfo = gInfoTree->GetEntries();
+    std::cout << "Number of events in gInfoTree: " << nGInfo << std::endl;
+
+      // ** generator info (x-sections)
+    float _internalXsec;
+    float _externalXsecLO;
+    float _externalXsecNLO;
+    float _filterEfficiency;
+
+    // set GenInfo branches manually
+    gInfoTree->SetBranchAddress("internalXsec",&_internalXsec);
+    gInfoTree->SetBranchAddress("externalXsecLO",&_externalXsecLO);
+    gInfoTree->SetBranchAddress("externalXsecNLO",&_externalXsecNLO);
+    gInfoTree->SetBranchAddress("filterEfficiency",&_filterEfficiency);
+
+    double SInternalXsec = 0;
+    double SExternalXsecLO = 0;
+    double SExternalXsecNLO = 0;
+    double SFilterEfficiency = 0;
+    for (int iGInfo=0; iGInfo<nGInfo; ++iGInfo) {
+      gInfoTree->GetEntry(iGInfo);
+      SInternalXsec += _internalXsec;
+      SExternalXsecLO += _externalXsecLO;
+      SExternalXsecNLO += _externalXsecNLO;
+      SFilterEfficiency += _filterEfficiency;
+    }
+  
+    double InternalXsec = SInternalXsec / nGInfo;
+//     double ExternalXsecLO = SExternalXsecLO / nGInfo;
+//     double ExternalXsecNLO = SExternalXsecNLO / nGInfo;
+    double FilterEfficiency = SFilterEfficiency / nGInfo;
+
+    std::cout << "Generator information:" << std::endl
+	      << "      InternalXsec      = " << SInternalXsec / nGInfo << " pb " << std::endl
+	      << "      ExternalXsecLO    = " << SExternalXsecLO / nGInfo << " pb " << std::endl
+	      << "      ExternalXsecNLO   = " << SExternalXsecNLO / nGInfo << " pb " << std::endl
+	      << "      FilterEfficiency  = " << SFilterEfficiency / nGInfo << std::endl;
+
+    // in case not filter has been applied
+    if (FilterEfficiency <0) {
+      std::cout << "GenInfo FilterEfficieny <0 ==> set to 1" << std::endl;
+      FilterEfficiency = 1;
+    }
+
+    // compute the lumi scale factor
+    double XSec = InternalXsec;
+    double integLumi = nInputEvents / (XSec * FilterEfficiency);
+    lumiScaleFac = targetLumi / integLumi;
+
+    std::cout << "Lumi scale factor computation based on internal cross section:" << std::endl
+	      << "      Xsec              = " << XSec << " pb " << std::endl
+	      << "      IntLumiMC         = " << integLumi << " pb-1 " << std::endl
+	      << "      TargetLumi        = " << targetLumi << " pb-1 " << std::endl
+	      << "      Lumi Scale Factor = " << lumiScaleFac << std::endl;
+  }
+  return nInputEvents;
+}
+
+#endif // #ifdef 

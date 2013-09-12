@@ -1,0 +1,16 @@
+///BDTGrad
+NTrees=1000
+BoostType=Grad
+//Shrinkage=0.30
+Shrinkage=0.10
+SeparationType=SDivSqrtSPlusB
+nCuts=20
+UseWeightedTrees=True
+UseBaggedGrad=True
+//GradBaggingFraction=0.5
+GradBaggingFraction=0.6
+//NNodesMax=10
+NNodesMax=30
+
+///No pruning
+PruneMethod=NoPruning

@@ -1,0 +1,14 @@
+.. Installing lsRoot
+
+In general, if a valid version of root is installed on you PC:
+
+	make
+
+	./lsRoot args file.root
+
+
+.. Running the validation 
+
+Change file1 and file2 paths to files to be validated and then
+
+	source validate.txt

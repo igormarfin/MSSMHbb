@@ -1,0 +1,9 @@
+file1=TripleBtagAnalysis.root
+file2=TripleBtagAnalysis2.root
+
+lsRoot -A -I   -D -N   "${file1}:/*"   | grep -v "Keys"| awk '{ if (NF>10) print $12,$7,$8,$9,$10,$11,$6}'  > dump1.txt 
+lsRoot -A -I   -D -N     "${file2}:/*"  | grep -v "Keys"| awk '{ if (NF>10) print $12,$7,$8,$9,$10,$11,$6}' > dump2.txt 
+#diff -u dump1.txt dump2.txt
+sdiff -s  dump1.txt dump2.txt
+
+rm dump1.txt dump2.txt 

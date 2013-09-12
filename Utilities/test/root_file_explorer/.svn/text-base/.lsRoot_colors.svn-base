@@ -1,0 +1,68 @@
+### File Read in by lsRoot to set colors
+### Place this file in your home Directory
+### 'className color'
+### If a desired TClass does not exist that you want included just add:
+### 'TClass xx;xx'
+### default should be set to fg color of terminal
+
+
+default  00;00
+TH1  00;00 # This will achieve nothing since a TH1 is never written to file, a TH1[FDI..] is writtern rather 
+TH1F 00;00
+TH1D 00;00
+TH1I 00;00
+TH2  00;00 
+TH2F 00;00
+TH2D 00;00
+TH2I 00;00
+TH3  00;00 
+TH3F 00;00
+TH3D 00;00
+TH3I 00;00
+TCanvas 01;32
+TDirectory 01;34
+TDirectoryFile 01;34
+TGraph  01;31 
+TTree  01;31
+TProfile 01;31
+
+##colors for HistDrawing
+StatBox 00;31
+XAxis 01;32
+YAxis 00;33
+FillColor 00;35
+FillSymbol X0
+SetOptStat 1111
+#this is if(h->GetMaximum() > h->GetMinimum()*LogyThreshold) setlogy
+LogyThreshold 800
+
+#Define ColorPalette Here is Default:
+#do 'lsRoot --help color' for info on what colors are for various escape codes
+#first color is color for highest bin
+#SetPalette 00;31, 00;33, 00;32, 00;36, 00;34, 01;35, 00;00
+SetPalette 00;31, 01;31, 00;33, 01;33, 00;32, 01;32, 00;36, 01;36, 00;34, 01;34, 00;35, 01;35, 00;00
+#null is the blank space
+SetPaletteAsci *,+,O,o,.,null
+
+#example custom formats available
+#Run custom formats w/ lsRoot -c name
+customFormat verbose =\d\h \N[all]
+customFormat validate =\N\A\D\I \d\h
+customFormat open =\p\c* \h = (\c*) _file0->Get("\d\h");
+customFormat draw =\p\c* \h = (\c*) _file0->Get("\d\h"); \h->Draw();
+
+#this will hi-jack the lsRoot -l option
+#so uncomment line and change to your liking and utilize w/ lsRoot -l
+#m_customFormat \I\B\A\N\D \d/\h
+#m_customFormat \t\s\c \d\h \C \k
+
+#These settings are applied before the args are read
+#thus command line args overwrite these settings
+
+m_precision 3  # over-ride w/ lsRoot --precision val
+m_quiet 0  # If true lines such as 'opening [rootFile]' and number of root file 'opens/closes' will be surpressed
+m_newLine 1 # set this to 0 if you do not want a blank line after each TDirectory encountered
+
+#Set Terminal size for windos
+#nCols=60
+#nRows=80

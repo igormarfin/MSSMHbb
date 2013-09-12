@@ -1,0 +1,578 @@
+/// -*-c++-*-
+#ifndef bTagEff_h
+#define bTagEff_h
+
+#include <map>
+#include <boost/assign/list_of.hpp>
+#include <vector>
+#include <string>
+#include <utility>
+
+#include "TFile.h"
+#include "TH2.h"
+#include "TRandom3.h"
+#include "TF1.h"
+#include "TMath.h"
+
+#include "BTag.h"
+#include "JetFlavor.h"
+
+
+class bTagEff {
+public:
+  // Primary constructor
+  bTagEff(const std::string& theFile, 
+          const std::string& theonloff,
+          const JetFlavor::Codes &jetFlavorCodes,
+          const BTag::WPs &bTagWPs);
+  // deprecated signature for backward compatibility
+  bTagEff(const std::string& theFile, 
+	  const std::string& theonloff,
+	  const std::string* theFlavlabel,
+	  const std::string* theBtagLabel,
+	  int theNflav = 3,
+	  int theNbtag = 4);
+  ~bTagEff();
+  // Not to be used
+  bTagEff();
+
+  //if this method is used, an exception will be thrown
+  //when the not-merged efficiency functions are called!
+  void forceMerging(bool b) { forceMerging_ = b; }
+
+  double eff(JetFlavor::Code jfc, BTag::WP btwp, double pt,double eta) const;
+  double eff(int iflav,const std::string& theBtagLabel,double pt,double eta) const; // deprecated signature for backward compatibility
+
+  //eff_merged accepts only udsg,c,b flavour categories!
+  double eff_merged(JetFlavor::Code jfc, BTag::WP btwp, const std::string &scenario, double px, double py, double pz, double eta) const;
+  
+  // btag error function
+  double erreff(JetFlavor::Code jfc, BTag::WP btwp, double pt,double eta) const;
+  double erreff(int iflav,const std::string& theBtagLabel, double pt,double eta) const; // deprecated signature for backward compatibility
+  double erreff_merged(JetFlavor::Code jfc, BTag::WP btwp, const std::string &scenario, double pt,double eta) const;
+
+
+  // smear according to statistical error
+  void randomize();
+
+  // store to an output file
+  void write(const char* outName);
+
+
+
+private:
+  static bool deprecatedFunctionsCalled_;
+
+  const std::string onloff_;
+ 
+  bool forceMerging_;
+  TF1 f_error_;
+
+  std::map< std::pair<JetFlavor::Code,BTag::WP>, TH2* > hrel2D_; // array of TH2 pointers (nflav * nbtag)
+  std::map< std::pair<JetFlavor::Code,BTag::WP>, TH2* > herr2D_; // for interpolation of errors
+  std::map<std::string, std::vector<double> > BBoverBplusBB_pars_;
+  std::map<std::string, std::vector<double> > CCoverCplusCC_pars_;
+
+
+  TH2* getHRel2D(JetFlavor::Code jfc, BTag::WP btwp) const;
+  TH2* getHErr2D(JetFlavor::Code jfc, BTag::WP btwp) const;
+  void testParameter(JetFlavor::Code jfc, BTag::WP btwp, const std::string &scenario, double pt, double eta) const;
+  void fillMap(
+	       std::vector<double> parvector,
+	       std::map<std::string, std::vector<double> > &m,
+	       const std::string scenario
+	       );
+  void fillMergingData();
+};
+
+
+bool bTagEff::deprecatedFunctionsCalled_ = false;
+
+
+
+
+bTagEff::bTagEff(){
+  std::cout << "error: bTagEff: default constructor not to be used!" << std::endl;
+  throw std::exception();
+}
+
+bTagEff::bTagEff(const std::string& theFile, 
+		 const std::string& theonloff,
+		 const JetFlavor::Codes &jetFlavorCodes,
+		 const BTag::WPs &bTagWPs)
+  : onloff_(theonloff),
+    forceMerging_(false),
+    f_error_(TF1("mixture_error", "sqrt([0]+x*x*[1]+2.0*x*[2])",0, 3500.0)) {
+    
+  //fill fit data used for merging
+  this->fillMergingData();
+    
+  if (onloff_ != "online" && onloff_ != "offline") {
+    std::cout << "error: bTagEff constructor: Bad online/offline mode " << onloff_ << std::endl;
+    return;
+  }
+
+  // Get efficiency maps from file
+  TFile *hfile = new TFile(theFile.c_str(),"READ");
+  if (hfile == NULL) {
+    std::cout << "error: bTagEff constructor: Cannot open file " << theFile << std::endl;
+    return;
+  }
+
+  // Loop over jet flavors
+  for(JetFlavor::CodesIt jfcIt = jetFlavorCodes.begin(); jfcIt != jetFlavorCodes.end(); ++jfcIt) {
+    // name of jet-flavor codes as used in efficiency histograms
+    const std::string jfcName = JetFlavor::toString(*jfcIt);
+      
+    // Loop over b-tag working points
+    for(BTag::WPsIt wpIt = bTagWPs.begin(); wpIt != bTagWPs.end(); ++wpIt) {
+      // name of b-tag working point as used in efficiency histograms
+      const std::string btgName = BTag::toString(*wpIt);
+
+      TH2* hRelTmp = NULL;
+      TH2* hErrTmp = NULL;
+	
+      if (onloff_ == "online") {
+
+	std::string shname( Form("pteta_%s_%s_releff_div-smp",btgName.c_str(),jfcName.c_str()) );
+	std::cout << "smoothed eff from " << shname << std::endl;
+
+	hRelTmp = static_cast<TH2*>( hfile->Get( shname.c_str() ) );
+	if( hRelTmp == NULL ) {
+	  std::cout << "Histogram not found: " << shname << std::endl;
+	} else {
+	  hRelTmp->SetDirectory(0);
+	  std::cout << "Using efficiency histogram " << hRelTmp->GetName() << " nbinsx= " << hRelTmp->GetXaxis()->GetNbins() << " nbinsy= " << hRelTmp->GetYaxis()->GetNbins() << std::endl;
+	}
+
+      } else {
+
+	std::string shname( Form("pteta_%s_%s_eff_div",btgName.c_str(),jfcName.c_str() ) );
+	hRelTmp = static_cast<TH2*>( hfile->Get( shname.c_str()) );
+	if( hRelTmp == NULL ) {
+	  std::cout << "Histogram not found: " << shname << std::endl;
+	} else {
+	  hRelTmp->SetDirectory(0);
+	}
+	  
+
+	// create the error histogram
+	if( hRelTmp != NULL) {
+	  shname = Form("%s%s","Bterror_",hRelTmp->GetName());
+	  hErrTmp = static_cast<TH2*>( hRelTmp->Clone(shname.c_str()) );
+	  hErrTmp->SetDirectory(0);
+	  for (int ibinx=1; ibinx<=hRelTmp->GetXaxis()->GetNbins(); ++ibinx) {
+	    for (int ibiny=1; ibiny<=hRelTmp->GetYaxis()->GetNbins(); ++ibiny) {
+	      hErrTmp->SetBinContent(ibinx,ibiny,hRelTmp->GetBinError(ibinx,ibiny));
+	    }
+	  }
+	} // End create error histogram
+
+      }
+
+      hrel2D_[ std::make_pair(*jfcIt,*wpIt) ] = hRelTmp;
+      herr2D_[ std::make_pair(*jfcIt,*wpIt) ] = hErrTmp;
+      
+    }	// End of loop over b-tag working points
+    
+  } // End of loop over jet flavors
+  
+  delete hfile;
+}
+
+
+bTagEff::bTagEff(const std::string& theFile, 
+		 const std::string& theonloff,
+		 const std::string* theFlavlabel,
+		 const std::string* theBtagLabel,
+		 int theNflav,
+		 int theNbtag)
+  : onloff_(theonloff),
+    forceMerging_(false),
+    f_error_(TF1("mixture_error", "sqrt([0]+x*x*[1]+2.0*x*[2])",0, 3500.0)) {
+  
+  deprecatedFunctionsCalled_ = true;
+
+  // Convert to new codes
+  JetFlavor::Codes jetFlavorCodes;
+  for(int i = 0; i < theNflav; ++i) {
+    jetFlavorCodes.push_back( JetFlavor::fromString(theFlavlabel[i]) );
+  }
+  BTag::WPs bTagWPs;
+  for(int i = 0; i < theNbtag; ++i) {
+    bTagWPs.push_back(BTag::fromString(theBtagLabel[i]));
+  }
+  
+    
+  //fill fit data used for merging
+  this->fillMergingData();
+    
+  if (onloff_ != "online" && onloff_ != "offline") {
+    std::cout << "error: bTagEff constructor: Bad online/offline mode " << onloff_ << std::endl;
+    return;
+  }
+
+  // Get efficiency maps from file
+  TFile *hfile = new TFile(theFile.c_str(),"READ");
+  if (hfile == NULL) {
+    std::cout << "error: bTagEff constructor: Cannot open file " << theFile << std::endl;
+    return;
+  }
+
+  // Loop over jet flavors
+  for(JetFlavor::CodesIt jfcIt = jetFlavorCodes.begin(); jfcIt != jetFlavorCodes.end(); ++jfcIt) {
+    // name of jet-flavor codes as used in efficiency histograms
+    const std::string jfcName = JetFlavor::toString(*jfcIt);
+      
+    // Loop over b-tag working points
+    for(BTag::WPsIt wpIt = bTagWPs.begin(); wpIt != bTagWPs.end(); ++wpIt) {
+      // name of b-tag working point as used in efficiency histograms
+      const std::string btgName = BTag::toString(*wpIt);
+
+      TH2* hRelTmp = NULL;
+      TH2* hErrTmp = NULL;
+	
+      if (onloff_ == "online") {
+
+	std::string shname( Form("pteta_%s_%s_releff_div-smp",btgName.c_str(),jfcName.c_str()) );
+	std::cout << "smoothed eff from " << shname << std::endl;
+
+	hRelTmp = static_cast<TH2*>( hfile->Get( shname.c_str() ) );
+	if( hRelTmp == NULL ) {
+	  std::cout << "Histogram not found: " << shname << std::endl;
+	} else {
+	  hRelTmp->SetDirectory(0);
+	  std::cout << "Using efficiency histogram " << hRelTmp->GetName() << " nbinsx= " << hRelTmp->GetXaxis()->GetNbins() << " nbinsy= " << hRelTmp->GetYaxis()->GetNbins() << std::endl;
+	}
+
+      } else {
+
+	std::string shname( Form("pteta_%s_%s_eff_div",btgName.c_str(),jfcName.c_str() ) );
+	hRelTmp = static_cast<TH2*>( hfile->Get( shname.c_str()) );
+	if( hRelTmp == NULL ) {
+	  std::cout << "Histogram not found: " << shname << std::endl;
+	} else {
+	  hRelTmp->SetDirectory(0);
+	}
+	  
+
+	// create the error histogram
+	if( hRelTmp != NULL) {
+	  shname = Form("%s%s","Bterror_",hRelTmp->GetName());
+	  hErrTmp = static_cast<TH2*>( hRelTmp->Clone(shname.c_str()) );
+	  hErrTmp->SetDirectory(0);
+	  for (int ibinx=1; ibinx<=hRelTmp->GetXaxis()->GetNbins(); ++ibinx) {
+	    for (int ibiny=1; ibiny<=hRelTmp->GetYaxis()->GetNbins(); ++ibiny) {
+	      hErrTmp->SetBinContent(ibinx,ibiny,hRelTmp->GetBinError(ibinx,ibiny));
+	    }
+	  }
+	} // End create error histogram
+
+      }
+
+      hrel2D_[ std::make_pair(*jfcIt,*wpIt) ] = hRelTmp;
+      herr2D_[ std::make_pair(*jfcIt,*wpIt) ] = hErrTmp;
+      
+    }	// End of loop over b-tag working points
+    
+  } // End of loop over jet flavors
+  
+  delete hfile;
+}
+
+bTagEff::~bTagEff() {
+  if( bTagEff::deprecatedFunctionsCalled_ ) {
+    std::cerr << "\n\nWARNING: one or more deprecated functions in bTagEff have been used!\n" << std::endl;
+  }
+}
+
+double bTagEff::eff(int iflav,const std::string& theBtagLabel,double pt,double eta) const {
+  deprecatedFunctionsCalled_ = true;
+  return eff(JetFlavor::fromInt(iflav),BTag::fromString(theBtagLabel),pt,eta);
+}
+
+
+double bTagEff::eff(JetFlavor::Code jfc, BTag::WP btwp, double pt,double eta) const {
+
+  if(forceMerging_) {
+    std::cout << "error: bTagEff.h: unmerged efficiency function called but merging was forced!" << std::endl;
+    throw std::exception();
+  }
+
+  // TODO remove hardcoded cuts
+  if (pt>=800) pt=799.999;
+  if (pt<=20.0) pt=20.000001;
+ 
+  // just to test
+  const double value = getHRel2D(jfc,btwp)->Interpolate(pt,fabs(eta));
+  if ( value <= 0) {
+    std::cout << "Warning : eff() " << BTag::toString(btwp)
+	      << "  " << onloff_
+	      << " " << JetFlavor::toString(jfc)
+	      << " zero for " << pt << " " << eta << std::endl;
+    return 0;
+  }
+ 
+  return  value > 0.0 ? value : 0.0;
+}
+
+
+//eff_merged accepts only udsg,c,b flavour categories!
+double bTagEff::eff_merged(JetFlavor::Code jfc, BTag::WP btwp, const std::string &scenario, double px, double py, double pz, double eta) const {
+
+  if( !( jfc == JetFlavor::UDSG || jfc == JetFlavor::C || jfc == JetFlavor::B ) ) {
+    std::cerr << "error: bTagEff: unsupported flavour: " << JetFlavor::toString(jfc) << std::endl;
+    throw std::exception();
+  }
+
+  const double pt = TMath::Sqrt(px*px+py*py);
+  const double p = TMath::Sqrt(px*px+py*py+pz*pz);
+    
+  double returnvalue = 99999.;
+
+  this->testParameter(jfc, btwp, scenario, pt, eta);
+
+  if( jfc == JetFlavor::C ) {
+
+    //get c and cc efficiencies
+    const double eff_c  = this->eff( JetFlavor::C  , btwp ,pt,eta);
+    const double eff_cc = this->eff( JetFlavor::CC , btwp ,pt,eta);
+    
+    const std::vector<double> &par = CCoverCplusCC_pars_.at(scenario);
+    const double CCweight = par.at(3) + par.at(0) * TMath::Erf((p-par.at(2))/par.at(1));
+    const double Cweight = 1.0 - CCweight;
+
+    returnvalue = ( CCweight * eff_cc + Cweight * eff_c ) / ( CCweight + Cweight );
+
+  } else if( jfc == JetFlavor::B ) {
+
+    //get b and bb efficiencies
+    const double eff_b  = this->eff( JetFlavor::B  , btwp ,pt,eta);
+    const double eff_bb = this->eff( JetFlavor::BB , btwp ,pt,eta);
+    
+    const std::vector<double> &par = BBoverBplusBB_pars_.at(scenario);
+    const double BBweight = par.at(0)+par.at(1) * p;
+    const double Bweight = 1.0 - BBweight;
+
+    returnvalue = ( BBweight * eff_bb + Bweight * eff_b ) / ( BBweight + Bweight );
+
+  } else if( jfc == JetFlavor::UDSG ) {
+
+    returnvalue = this->eff( JetFlavor::UDSG, btwp ,pt,eta);
+
+  }
+
+
+  if(returnvalue < 0.0) {
+    std::cout << "error: bTagEff: merged efficiency < 0: eff = " << returnvalue << std::endl;
+    throw std::exception();
+  }
+    
+  return returnvalue;
+}
+
+
+// btag error function
+double bTagEff::erreff(int iflav,const std::string& theBtagLabel, double pt,double eta) const {
+  std::cerr << "WARNING: deprecated function called" << std::endl;
+  std::cerr << "   bTagEff::erreff(int iflav,const std::string& theBtagLabel, double pt,double eta)" << std::endl;
+  std::cerr << "   outdated signature, this function has no functionality and returns no meaningful result" << std::endl;
+    
+  return 1.;
+}
+
+double bTagEff::erreff(JetFlavor::Code jfc, BTag::WP btwp, double pt,double eta) const {
+
+  if(forceMerging_) {
+    std::cout << "error: bTagEff.h: unmerged efficiency error function called but merging was forced!" << std::endl;
+    throw std::exception();
+  }
+
+  // TODO hardcoded cuts
+  if (pt>=800) pt=799.999;
+  if (pt<=20.0) pt=20.000001;
+
+  TH2* hErr = getHErr2D(jfc,btwp);
+  if( hErr == NULL ) {
+    std::cout << "error: erreff: no histo stored" << std::endl;
+    throw std::exception();
+    return 0;
+  }
+
+  return hErr->Interpolate(pt,fabs(eta));
+}
+
+
+double bTagEff::erreff_merged(JetFlavor::Code jfc, BTag::WP btwp, const std::string &scenario, double pt,double eta) const {
+  std::cout << "error: bTagEff::erreff_merged(...) not yet implemented!" << std::endl;
+  throw std::exception();
+  return 9999999999.0;
+}
+
+
+// smear according to statistical error
+void bTagEff::randomize() {
+
+  if( onloff_ == "online" ) {
+
+    std::cout << "bTagEff::randomize: not supported for online" << std::endl;
+
+  } else {
+      
+    TRandom3 rdm;
+    rdm.SetSeed(0);
+
+    // Loop over histograms
+    for(std::map< std::pair<JetFlavor::Code,BTag::WP>, TH2* >::iterator hRel2DIt = hrel2D_.begin();
+	hRel2DIt != hrel2D_.end(); ++hRel2DIt) {
+
+      // JetFlavor::Code jfc  = hRel2DIt->first.first;
+      // BTag::WP        btwp = hRel2DIt->first.second;
+      //std::cout << "==== Randomize "
+      //          << JetFlavor::toString(jfc)
+      //          << " btag " << BTag::toString(btwp) 
+      //	    << std::endl;
+	
+      TH2* hRel = hRel2DIt->second;
+      for(int ibinx=1; ibinx<=hRel->GetXaxis()->GetNbins(); ++ibinx) {
+	for (int ibiny=1; ibiny<=hRel->GetYaxis()->GetNbins(); ++ibiny) {
+	  double theContent = hRel->GetBinContent(ibinx,ibiny);
+	  double theError = hRel->GetBinError(ibinx,ibiny);
+	  double theDelta = 0;
+	  if (theError>0) theDelta = rdm.Gaus(0,theError);
+	  double newContent = theContent + theDelta;
+	  if (newContent<0) newContent = 0;
+	  //	std::cout << ibinx << " " << ibiny
+	  //      	<< "  oldeff= " << theContent
+	  //       	<< " +- " << theError
+	  //	<< " delta " << theDelta
+	  //	<< " neweff= " << newContent << std::endl;
+	  hRel->SetBinContent(ibinx,ibiny,newContent);
+	}
+      }
+
+    } // End of loop over histograms
+
+  }
+}
+
+
+// store to an output file
+void bTagEff::write(const char* outName) {
+  TFile* hout = new TFile(outName,"recreate");
+  for(std::map< std::pair<JetFlavor::Code,BTag::WP>, TH2* >::iterator hRel2DIt = hrel2D_.begin();
+      hRel2DIt != hrel2D_.end(); ++hRel2DIt) {
+    hRel2DIt->second->Write();
+  }
+  hout->Close();
+}
+
+
+TH2* bTagEff::getHRel2D(JetFlavor::Code jfc, BTag::WP btwp) const {
+  std::map< std::pair<JetFlavor::Code,BTag::WP>, TH2* >::const_iterator h2It = hrel2D_.find( std::make_pair(jfc,btwp) );
+  if( h2It == hrel2D_.end() ) {
+    std::cout << "ERROR bTagEff::getHRel2D unsupported flavor " << JetFlavor::toString(jfc) << std::endl;
+    throw std::exception();
+  }
+  return h2It->second;
+}
+ 
+
+TH2* bTagEff::getHErr2D(JetFlavor::Code jfc, BTag::WP btwp) const {
+  std::map< std::pair<JetFlavor::Code,BTag::WP>, TH2* >::const_iterator h2It = herr2D_.find( std::make_pair(jfc,btwp) );
+  if( h2It == herr2D_.end() ) {
+    std::cout << "ERROR bTagEff::getHRel2D unsupported flavor " << JetFlavor::toString(jfc) << std::endl;
+    throw std::exception();
+  }
+  return h2It->second;
+}
+ 
+
+void bTagEff::testParameter(JetFlavor::Code jfc, BTag::WP btwp, const std::string &scenario, double pt, double eta) const {
+
+  if( jfc == JetFlavor::UNDEFINED ) {
+    std::cout << "error: bTagEff.h: iflav problem: iflav = " << JetFlavor::toString(jfc) << std::endl;
+    throw std::exception();
+  }
+  
+  if(pt < 20.0 /*|| pt > 800.*/) {
+    std::cout << "error: bTagEff: pt out of range: " << pt << std::endl;
+    throw std::exception();
+  }
+   
+  if( btwp != BTag::CSVT ) {
+    std::cout << "error: bTagEff: btagging " << BTag::toString(btwp) << " not supported by bTagEff. Only CSVT will work." << std::endl;
+    throw std::exception();
+  }
+
+}
+
+
+void bTagEff::fillMap(
+		      std::vector<double> parvector,
+		      std::map<std::string, std::vector<double> > &m,
+		      const std::string scenario
+		      ) 
+{
+  std::pair<std::string, std::vector<double> > p = std::pair<std::string, std::vector<double> >(scenario,
+												parvector
+												);
+
+   
+  m.insert(p);
+
+  
+}
+
+void bTagEff::fillMergingData()
+{
+  this->fillMap(
+		boost::assign::list_of(-3.819104856279580e-03 ) ( 2.352221947354410e-04),
+		BBoverBplusBB_pars_,
+		"MediumMass2012"
+		);
+    
+
+
+  this->fillMap(
+		boost::assign::list_of( 2.820726201665347e-03 ) ( 2.336350037238651e-04),
+		BBoverBplusBB_pars_,
+		"HighMass2012"
+		);
+    
+
+
+
+
+  this->fillMap(
+		boost::assign::list_of( -2.802778371145249e-03 ) ( 2.865624622074772e-04),
+		BBoverBplusBB_pars_,
+		"VeryHighMass2012"
+		);
+    
+
+  this->fillMap(
+		boost::assign::list_of( 1.622516928373815e+00 ) ( 1.098995160970648e+03 ) ( -5.666156576283472e+02 ) ( -7.428701489625740e-01),
+		CCoverCplusCC_pars_,
+		"MediumMass2012"
+		);
+    
+
+
+  this->fillMap(
+		boost::assign::list_of( 3.928417049427955e-01 ) ( 5.105145132855149e+02 ) ( 3.177947593537644e+02 ) ( 4.653429302514134e-01),
+		CCoverCplusCC_pars_,
+		"HighMass2012"
+		);
+    
+
+  this->fillMap(
+		boost::assign::list_of(4.812526775114680e-01 ) ( 6.344229811250940e+02 ) ( 1.799781064881460e+02 ) ( 3.703873914138270e-01),
+		CCoverCplusCC_pars_,
+		"VeryHighMass2012"
+		);
+    
+
+}
+
+#endif // #ifdef 

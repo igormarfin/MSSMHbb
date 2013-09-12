@@ -1,0 +1,22 @@
+
+--This line, and those below, will be ignored--
+
+A    root_file_explorer
+A    root_file_explorer/lsUtils.cpp
+A    root_file_explorer/lsPrint.h
+A    root_file_explorer/.lsRoot_colors
+AM   root_file_explorer/lsRoot
+A    root_file_explorer/lsDraw.h
+A    root_file_explorer/lsConfig.cpp
+A    root_file_explorer/lsUtils.h
+A    root_file_explorer/lsConfig.h
+A    root_file_explorer/README
+A    root_file_explorer/lsRoot.cpp
+A    root_file_explorer/validate.txt
+A    root_file_explorer/lsGlobals.h
+A    root_file_explorer/lsRoot.h
+A    root_file_explorer/stringUtils.cpp
+A    root_file_explorer/lsPrint.cpp
+A    root_file_explorer/makefile
+A    root_file_explorer/lsDraw.cpp
+A    root_file_explorer/stringUtils.h

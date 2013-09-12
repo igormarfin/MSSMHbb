@@ -1,0 +1,274 @@
+#ifndef jetFlavorCode_h
+#define jetFlavorCode_h
+
+#include "Analysis/Utilities/interface/HbbNtuple.h"
+
+int jetFlavorCode(const int iJet) {
+  int theFlavCode = -1;
+  int theFlavor = partonFlavorJet[iJet];
+  if (hflContentJet[iJet] != 0) theFlavor = hflContentJet[iJet];
+  switch (abs(theFlavor)) {
+  case 0:
+  case 1:
+  case 2:
+  case 3:
+    theFlavCode = 0;
+    break;
+  case 4:
+    theFlavCode = 1;
+    break;
+  case 5:
+    theFlavCode = 2;
+    break;
+  case 21:
+    theFlavCode = 0;
+    break;
+  default:
+    std::cout << "bad flavor " << theFlavor << std::endl;
+  }
+  return theFlavCode;
+}
+
+
+
+
+
+
+
+int jetFlavorCodeNewCat(const int iJet) {
+ 
+  int iflav = -1;
+  
+  const int parton_matching_mode = 3;
+ 
+  if( (int)BContentJet3[iJet] > 0 )
+    {
+      if(parton_matching_mode == 3)
+        {
+          if((int)BContentJet3[iJet] == 1)
+            iflav = 2;
+          else 
+            iflav = 4;  
+        }
+      else
+        iflav = 2;
+    }
+  else if( (int)CContentJet3[iJet] > 0 )
+    {
+      if(parton_matching_mode == 3)
+        {
+          if( (int)CContentJet3[iJet] == 1 )
+            iflav = 1;
+          else
+            iflav = 3; 
+        }
+      else
+        iflav = 1;
+    }
+  else
+    {
+      //everything else is assumed to be udsg ... 
+      switch (abs(partonFlavorJet[iJet])) {
+      case 0: //correct?? not used in readmistag?
+      case 1:
+      case 2:
+      case 3:
+      case 4:
+      case 5:
+      case 21:
+        iflav = 0;
+        break;
+      }
+   /*    if(skip_undefined_jets && abs(partonFlavorJet[iJet]) == 0) */
+/*         iflav = -1; */
+    }
+ 
+
+  return iflav;
+}
+
+
+
+
+
+
+//this methods provides similar flavour definitions as used in the 2011 analysis
+int jetFlavorCodeNewCat2011flavdef(const int iJet) {
+ 
+  int iflav = -1;
+  
+  const int parton_matching_mode = 2;
+ 
+  if( (int)BContentJet3[iJet] > 0 )
+    {
+      if(parton_matching_mode == 3)
+        {
+          if((int)BContentJet3[iJet] == 1)
+            iflav = 2;
+          else 
+            iflav = 4;  
+        }
+      else
+        iflav = 2;
+    }
+  else if( (int)CContentJet3[iJet] > 0 )
+    {
+      if(parton_matching_mode == 3)
+        {
+          if( (int)CContentJet3[iJet] == 1 )
+            iflav = 1;
+          else
+            iflav = 3; 
+        }
+      else
+        iflav = 1;
+    }
+  else
+    {
+      //everything else is assumed to be udsg ... 
+      switch (abs(partonFlavorJet[iJet])) {
+      case 0: //correct?? not used in readmistag?
+      case 1:
+      case 2:
+      case 3:
+      case 4:
+      case 5:
+      case 21:
+        iflav = 0;
+        break;
+      }
+   /*    if(skip_undefined_jets && abs(partonFlavorJet[iJet]) == 0) */
+/*         iflav = -1; */
+    }
+ 
+
+  return iflav;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//matching code which uses a cone of size 0.5 instead of 0.3 which is the default
+int jetFlavorCodeNewCat5(const int iJet) {
+ 
+  int iflav = -1;
+  
+  const int parton_matching_mode = 3;
+ 
+  if( (int)BContentJet5[iJet] > 0 )
+    {
+      if(parton_matching_mode == 3)
+        {
+          if((int)BContentJet5[iJet] == 1)
+            iflav = 2;
+          else 
+            iflav = 4;  
+        }
+      else
+        iflav = 2;
+    }
+  else if( (int)CContentJet5[iJet] > 0 )
+    {
+      if(parton_matching_mode == 3)
+        {
+          if( (int)CContentJet5[iJet] == 1 )
+            iflav = 1;
+          else
+            iflav = 3; 
+        }
+      else
+        iflav = 1;
+    }
+  else
+    {
+      //everything else is assumed to be udsg ... 
+      switch (abs(partonFlavorJet[iJet])) {
+      case 0: //correct?? not used in readmistag?
+      case 1:
+      case 2:
+      case 3:
+      case 4:
+      case 5:
+      case 21:
+        iflav = 0;
+        break;
+      }
+   /*    if(skip_undefined_jets && abs(partonFlavorJet[iJet]) == 0) */
+/*         iflav = -1; */
+    }
+ 
+
+  return iflav;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int diJetFlavorCode(const int iJet0, const int iJet1) {
+  // determine dijet flavor from MC info
+  // we set a flavor pair code that does not distinguish ordering
+  int theFlav[2];
+  theFlav[0] = jetFlavorCode( iJet0 );
+  theFlav[1] = jetFlavorCode( iJet1 );
+  // now set the dijet flavor
+  int theFcDijet = -1;
+  int flavPatternDijet = 10*theFlav[0]+theFlav[1];
+  switch (flavPatternDijet) {
+  case 0:
+    theFcDijet = 5;
+    break;
+  case 11:
+    theFcDijet = 3;
+    break;
+  case 22:
+    theFcDijet = 0;
+    break;
+  case 1:
+  case 10:
+    theFcDijet = 4;
+    break;
+  case 2:
+  case 20:
+    theFcDijet = 2;
+    break;
+  case 12:
+  case 21:
+    theFcDijet = 1;
+    break;
+  default:
+    std::cout << "diJetFlavorCode: Bad flavor code " << theFlav[0] << " " << theFlav[1] << std::endl;
+  }
+  return theFcDijet;
+}
+
+#endif  // ifdef

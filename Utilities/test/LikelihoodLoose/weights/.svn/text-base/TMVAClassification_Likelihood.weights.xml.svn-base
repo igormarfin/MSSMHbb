@@ -1,0 +1,315 @@
+<?xml version="1.0"?>
+<MethodSetup Method="Likelihood::Likelihood">
+  <GeneralInfo>
+    <Info name="TMVA Release" value="4.0.7 [262151]"/>
+    <Info name="ROOT Release" value="5.27/06 [334598]"/>
+    <Info name="Creator" value="marfin"/>
+    <Info name="Date" value="Mon Apr 23 21:39:42 2012"/>
+    <Info name="Host" value="Linux lxbuild042.cern.ch 2.6.18-238.1.1.el5 #1 SMP Wed Jan 19 11:06:36 CET 2011 x86_64 x86_64 x86_64 GNU/Linux"/>
+    <Info name="Dir" value="/data/user/marfin/CMSSW_4_2_4_patch1/src/Analysis/Utilities/test"/>
+    <Info name="Training events" value="200000"/>
+    <Info name="TrainingTime" value="0.513345"/>
+    <Info name="AnalysisType" value="Classification"/>
+  </GeneralInfo>
+  <Options>
+    <Option name="V" modified="Yes">False</Option>
+    <Option name="VerbosityLevel" modified="No">Default</Option>
+    <Option name="VarTransform" modified="No">None</Option>
+    <Option name="H" modified="Yes">True</Option>
+    <Option name="CreateMVAPdfs" modified="No">False</Option>
+    <Option name="IgnoreNegWeightsInTraining" modified="No">False</Option>
+    <Option name="TransformOutput" modified="Yes">False</Option>
+  </Options>
+  <Variables NVar="19">
+    <Variable VarIndex="0" Expression="D" Label="D" Title="D" Unit="F" Internal="D" Type="F" Min="8.09351e-13" Max="0.969845"/>
+    <Variable VarIndex="1" Expression="Et3byEt1" Label="Et3byEt1" Title="Et3byEt1" Unit="F" Internal="Et3byEt1" Type="F" Min="0.0213338" Max="0.995631"/>
+    <Variable VarIndex="2" Expression="Et3byEt2" Label="Et3byEt2" Title="Et3byEt2" Unit="F" Internal="Et3byEt2" Type="F" Min="0.0256311" Max="0.999988"/>
+    <Variable VarIndex="3" Expression="Eta1" Label="Eta1" Title="Eta1" Unit="F" Internal="Eta1" Type="F" Min="-2.59996" Max="2.59998"/>
+    <Variable VarIndex="4" Expression="Eta2" Label="Eta2" Title="Eta2" Unit="F" Internal="Eta2" Type="F" Min="-2.59998" Max="2.59996"/>
+    <Variable VarIndex="5" Expression="Eta3" Label="Eta3" Title="Eta3" Unit="F" Internal="Eta3" Type="F" Min="-2.6" Max="2.6"/>
+    <Variable VarIndex="6" Expression="aplanarity" Label="aplanarity" Title="aplanarity" Unit="F" Internal="aplanarity" Type="F" Min="7.72851e-13" Max="0.425172"/>
+    <Variable VarIndex="7" Expression="detajet1jet2" Label="detajet1jet2" Title="detajet1jet2" Unit="F" Internal="detajet1jet2" Type="F" Min="1.82086e-06" Max="5.18004"/>
+    <Variable VarIndex="8" Expression="detajet2jet3" Label="detajet2jet3" Title="detajet2jet3" Unit="F" Internal="detajet2jet3" Type="F" Min="3.12056e-06" Max="5.17128"/>
+    <Variable VarIndex="9" Expression="dphijet1jet3" Label="dphijet1jet3" Title="dphijet1jet3" Unit="F" Internal="dphijet1jet3" Type="F" Min="9.89214e-06" Max="3.14159"/>
+    <Variable VarIndex="10" Expression="dphijet2jet3" Label="dphijet2jet3" Title="dphijet2jet3" Unit="F" Internal="dphijet2jet3" Type="F" Min="7.99049e-06" Max="3.14154"/>
+    <Variable VarIndex="11" Expression="dphijet2jet3_boost12" Label="dphijet2jet3_boost12" Title="dphijet2jet3_boost12" Unit="F" Internal="dphijet2jet3_boost12" Type="F" Min="2.08783e-06" Max="3.14154"/>
+    <Variable VarIndex="12" Expression="dptjet1jet3" Label="dptjet1jet3" Title="dptjet1jet3" Unit="F" Internal="dptjet1jet3" Type="F" Min="0.000936789" Max="0.749734"/>
+    <Variable VarIndex="13" Expression="isotropy" Label="isotropy" Title="isotropy" Unit="F" Internal="isotropy" Type="F" Min="0.0916248" Max="0.999601"/>
+    <Variable VarIndex="14" Expression="maxdijetmass" Label="maxdijetmass" Title="maxdijetmass" Unit="F" Internal="maxdijetmass" Type="F" Min="0.222751" Max="0.988934"/>
+    <Variable VarIndex="15" Expression="mindijetmass" Label="mindijetmass" Title="mindijetmass" Unit="F" Internal="mindijetmass" Type="F" Min="0.0073299" Max="0.580337"/>
+    <Variable VarIndex="16" Expression="sphericity" Label="sphericity" Title="sphericity" Unit="F" Internal="sphericity" Type="F" Min="0.000508819" Max="0.927527"/>
+    <Variable VarIndex="17" Expression="thetajet1_boost12" Label="thetajet1_boost12" Title="thetajet1_boost12" Unit="F" Internal="thetajet1_boost12" Type="F" Min="0.0203366" Max="3.13854"/>
+    <Variable VarIndex="18" Expression="thetajet3_boost12" Label="thetajet3_boost12" Title="thetajet3_boost12" Unit="F" Internal="thetajet3_boost12" Type="F" Min="0.0020185" Max="3.1387"/>
+  </Variables>
+  <Spectators NSpec="0"/>
+  <Transformations NTransformations="0"/>
+  <MVAPdfs/>
+  <Weights NVariables="19" NClasses="2">
+    <PDFDescriptor VarIndex="0" ClassIndex="0">
+      <PDF Name="Likelihood PDF Sig[0]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="D_sig_original" NBins="30" XMin="8.0935079601815452e-13" XMax="9.6984529495239258e-01" HasEquidistantBins="1">
+          34563 16338.3 10587.3 7713.89 6068.42 4440.93 3738.27 2885.46 2147.52 1984.82 1777.47 1423.78 1034.35 916.808 804.418 663.506 626.697 525.273 366.056 294.305 278.166 255.116 191.149 106.27 126.384 99.7631 29.0504 12.3885 13.4182 3.96046 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="0" ClassIndex="1">
+      <PDF Name="Likelihood PDF Bkg[0]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="D_bgd_original" NBins="30" XMin="8.0935079601815452e-13" XMax="9.6984529495239258e-01" HasEquidistantBins="1">
+          51886.6 13324.9 10326.1 7578.6 1829.18 2870.48 2929.93 2223.17 662.902 1542.67 221.881 581.003 167.366 141.277 38.0642 19.9376 299.689 81.8053 64.142 53.9315 540.862 10.7074 5.56351 1.52287 4.22738 339.969 1.2437 2.37736 0.0078312 0.421783 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="1" ClassIndex="0">
+      <PDF Name="Likelihood PDF Sig[1]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="Et3byEt1_sig_original" NBins="50" XMin="2.1333806216716766e-02" XMax="9.9563080072402954e-01" HasEquidistantBins="1">
+          0 0.00418664 4.32238 22.1423 176.421 704.661 1324.32 1725.19 2123.25 2432.18 2769.75 3240.96 3433.98 3772.46 3977.15 3992.97 4063.51 4272.75 4392.76 4150.77 3881.88 3902.28 3938.27 3930.41 3490.93 3289.82 3025.12 2958.57 2833.74 2541.11 2170.44 2103.89 1933.34 1891.98 1585.91 1594.11 1242.96 1128.92 1053.96 858.202 870.826 743.294 622.383 484.255 427.323 312.79 281.731 194.101 76.26 70.373 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="1" ClassIndex="1">
+      <PDF Name="Likelihood PDF Bkg[1]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="Et3byEt1_bgd_original" NBins="20" XMin="2.1333806216716766e-02" XMax="9.9563080072402954e-01" HasEquidistantBins="1">
+          31.2225 168.76 1873.46 6194.58 5298.23 9240.9 11261.6 13506.1 9044.67 10074.8 9853.1 6218.9 2461.17 2989.23 4373.57 2081.74 2006.59 823.021 191.351 61.5373 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="2" ClassIndex="0">
+      <PDF Name="Likelihood PDF Sig[2]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="Et3byEt2_sig_original" NBins="50" XMin="2.5631058961153030e-02" XMax="9.9998795986175537e-01" HasEquidistantBins="1">
+          0 0.0026977 3.58177 4.2789 36.1696 227.961 543.637 834.708 1039.16 1346.12 1407.54 1545.29 1835.37 1926.45 2147.55 2207.69 2408.28 2430.07 2652.45 2444.56 2417.6 2451.65 2660.53 2737.79 2565.63 2597.71 2719.75 2626.32 2437.4 2538.46 2559.71 2635.18 2623.63 2507.36 2604.91 2633.69 2553.48 2636.75 2384.27 2454.24 2569.6 2306.19 2385.3 2330.51 2428.35 2290.7 2481.16 2200.09 2268.89 2371.04 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="2" ClassIndex="1">
+      <PDF Name="Likelihood PDF Bkg[2]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="Et3byEt2_bgd_original" NBins="20" XMin="2.5631058961153030e-02" XMax="9.9998795986175537e-01" HasEquidistantBins="1">
+          14.0644 93.1073 590.968 1439.86 3117.81 4598.07 5805.92 5944.15 7416.36 6313.97 7827.72 8410.39 6224.53 6083.13 6387.94 6904.13 5221.47 3587.92 7118.03 4655.57 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="3" ClassIndex="0">
+      <PDF Name="Likelihood PDF Sig[3]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="Eta1_sig_original" NBins="50" XMin="-2.5999579429626465e+00" XMax="2.5999832153320312e+00" HasEquidistantBins="1">
+          120.464 110.701 158.777 245.753 304.806 406.171 582.995 734.237 898.984 1092.11 1386.96 1538.26 1812.58 2171.57 2346.18 2847.44 3025.46 3123.03 3549.86 3738.53 3706.45 3856.82 4149.89 4321.13 4117.39 4294.37 4014.8 4100.84 3817.6 3881.88 3295.98 3492.87 3118.7 2847.84 2699.47 2486.89 2182.69 1830.4 1714.09 1236.43 1016.06 914.907 712.652 590.256 398.328 326.984 268.781 174.514 149.648 105.2 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="3" ClassIndex="1">
+      <PDF Name="Likelihood PDF Bkg[3]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="Eta1_bgd_original" NBins="30" XMin="-2.5999579429626465e+00" XMax="2.5999832153320312e+00" HasEquidistantBins="1">
+          223.996 183.024 1466.17 1548.72 804.569 1616.94 2048.3 2989.7 3813.45 4233.39 3274.31 5618.21 6235.57 6060.33 9319.85 3824.77 5596.4 6082.78 4177.27 8671.26 2665.65 3582.52 3440.53 2071.8 2881.42 2004.46 680.051 1184.7 861.567 593.775 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="4" ClassIndex="0">
+      <PDF Name="Likelihood PDF Sig[4]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="Eta2_sig_original" NBins="50" XMin="-2.5999815464019775e+00" XMax="2.5999591350555420e+00" HasEquidistantBins="1">
+          149.546 196.275 197.793 345.365 417.47 532.6 730.651 911.63 1185.05 1207.07 1467.85 1741.73 1966.07 2114.3 2381.42 2606.37 2942.76 3160.4 3533.06 3468.2 3425.55 3759.18 3887.83 3934.18 3941.96 3958.37 3740.62 3823.21 3788.56 3832.64 3485.92 3279.08 3144.73 2859.55 2674.43 2410.17 2083.56 1885.25 1710.5 1392.6 1258.08 1121.71 812.202 686.401 546.921 420.248 309.042 233.204 185.357 172.071 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="4" ClassIndex="1">
+      <PDF Name="Likelihood PDF Bkg[4]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="Eta2_bgd_original" NBins="20" XMin="-2.5999815464019775e+00" XMax="2.5999591350555420e+00" HasEquidistantBins="1">
+          614.241 1064.7 2556.47 3873.3 4973.66 4328.21 7826.69 7092.34 8288.99 10954.2 8147.8 10014.8 8347.88 3444.8 6152.99 3989.95 1704.01 2708.52 1137.98 533.658 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="5" ClassIndex="0">
+      <PDF Name="Likelihood PDF Sig[5]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="Eta3_sig_original" NBins="20" XMin="-2.5999994277954102e+00" XMax="2.5999989509582520e+00" HasEquidistantBins="1">
+          990.189 1649.62 2693.33 3669.61 4999.92 5772.56 6740.62 7418.98 7824.34 8266.49 7891.5 7956.64 7515.86 7012.43 5851.46 4774.25 3698.52 2632.07 1649.95 1010.33 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="5" ClassIndex="1">
+      <PDF Name="Likelihood PDF Bkg[5]" MinNSmooth="20" MaxNSmooth="20" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="Eta3_bgd_original" NBins="20" XMin="-2.5999994277954102e+00" XMax="2.5999989509582520e+00" HasEquidistantBins="1">
+          1145.13 654.298 2296.09 1645.35 3421.69 4879.84 7186.15 5364.59 10397.1 10403.4 10591.2 7723.32 5787.28 6961.16 6709.39 5830.45 1604.19 1714.46 2352.78 1087.13 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="6" ClassIndex="0">
+      <PDF Name="Likelihood PDF Sig[6]" MinNSmooth="20" MaxNSmooth="20" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="aplanarity_sig_original" NBins="20" XMin="7.7285102146121276e-13" XMax="4.2517191171646118e-01" HasEquidistantBins="1">
+          43115.8 21068.7 12193.5 7900.89 5183.53 3436.89 2191.4 1573.96 1023.33 832.573 533.921 361.191 274.85 158.637 96.8517 23.7433 28.3649 14.5448 0 2.16922 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="6" ClassIndex="1">
+      <PDF Name="Likelihood PDF Bkg[6]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="aplanarity_bgd_original" NBins="20" XMin="7.7285102146121276e-13" XMax="4.2517191171646118e-01" HasEquidistantBins="1">
+          56518.3 19951.9 7559.36 5128.49 3751.37 1068.97 1305.01 1237.07 128.908 86.3613 40.9085 577.617 384.296 6.54598 1.4169 1.63346 0.00161044 1.25415 0.000461378 0.421321 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="7" ClassIndex="0">
+      <PDF Name="Likelihood PDF Sig[7]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="detajet1jet2_sig_original" NBins="30" XMin="1.8208608025815920e-06" XMax="5.1800389289855957e+00" HasEquidistantBins="1">
+          12472 12570.5 11623.5 10711.9 9665.14 8922.17 7170.27 6143.36 4987.35 4107.6 3186.89 2535.89 1835.62 1272.81 957.153 655.596 426.745 289.169 167.039 132.071 74.093 52.3775 22.401 13.551 14.1249 4.8241 3.61934 0.465708 0.261576 0.385596 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="7" ClassIndex="1">
+      <PDF Name="Likelihood PDF Bkg[7]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="detajet1jet2_bgd_original" NBins="30" XMin="1.8208608025815920e-06" XMax="5.1800389289855957e+00" HasEquidistantBins="1">
+          6936.76 8515.87 8206.91 7700.53 10012.2 8199.38 6792.37 9287.53 5521.31 2683.07 4648 4165.77 3031.03 3933.76 3243.22 1418.76 1191.34 927.777 333.054 608.191 132.048 76.0258 125.079 30.0984 2.37451 30.5013 0.45696 1.46988 0.199903 0.00134942 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="8" ClassIndex="0">
+      <PDF Name="Likelihood PDF Sig[8]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="detajet2jet3_sig_original" NBins="50" XMin="3.1205579489324009e-06" XMax="5.1712808609008789e+00" HasEquidistantBins="1">
+          4959.17 5239.99 5366.75 5211.98 5412.54 5568.79 5588.52 5352.65 5044.13 4593.43 4618.25 4482.18 4044.67 3905.72 3510.71 3284.05 2950.3 2821.83 2496.62 2349.82 1982.28 1693.45 1554.89 1234.62 1243.29 1017.05 823.033 689.003 586.126 494.841 401.502 326.796 266.922 247.575 156.039 141.062 104.978 58.4009 61.0838 32.7119 32.9932 20.104 22.3656 8.44424 5.98984 5.94454 0.900855 1.55196 2.50928 0.138561 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="8" ClassIndex="1">
+      <PDF Name="Likelihood PDF Bkg[8]" MinNSmooth="20" MaxNSmooth="20" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="detajet2jet3_bgd_original" NBins="30" XMin="3.1205579489324009e-06" XMax="5.1712808609008789e+00" HasEquidistantBins="1">
+          12794.2 8677.62 7326.92 12929 11586.3 6510.29 4404.3 5336.69 4353.47 3674.11 3185.14 4659.25 2650.03 2289.91 1034.3 1072.46 1590.74 565.078 904.678 82.7835 678.508 551.934 427.269 343.448 97.9079 6.7556 18.5637 1.42981 1.38427 0.56369 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="9" ClassIndex="0">
+      <PDF Name="Likelihood PDF Sig[9]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="dphijet1jet3_sig_original" NBins="50" XMin="9.8921364042325877e-06" XMax="3.1415853500366211e+00" HasEquidistantBins="1">
+          298.76 253.004 267.161 298.871 285.76 372.165 349.92 358.862 398.844 531.288 551.772 603.118 606.145 732.618 667.701 693.964 772.362 839.382 895.31 1036.17 1107.53 1212.07 1358.6 1370.16 1543.4 1705.68 1881.65 2154.12 2290.06 2482.97 2687.91 2796.75 3093.36 3353.96 3459.23 3516.73 3979.45 4032.29 4070.99 4032.48 3856.53 4267.15 4023.05 3783.51 3643.48 3878.03 3438.09 3638.51 3260.48 3287.33 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="9" ClassIndex="1">
+      <PDF Name="Likelihood PDF Bkg[9]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="dphijet1jet3_bgd_original" NBins="20" XMin="9.8921364042325877e-06" XMax="3.1415853500366211e+00" HasEquidistantBins="1">
+          506.624 1203.02 1569.32 2503.96 1720.37 3016.92 2520.05 2232.04 1340.05 2928.49 2397.79 3167.69 5248.68 7499.4 7395.32 12028.3 10502.6 10847.2 10230.6 8896.4 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="10" ClassIndex="0">
+      <PDF Name="Likelihood PDF Sig[10]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="dphijet2jet3_sig_original" NBins="50" XMin="7.9904857557266951e-06" XMax="3.1415405273437500e+00" HasEquidistantBins="1">
+          1667.82 1879.62 1731.78 1830.87 2014.57 1939.56 2056.07 2276.69 2693.96 2683.88 2811.03 2664.77 2825.62 2676.79 2658.33 2663.38 2671.41 2630.37 2661.2 2500.38 2626.94 2516.43 2699.66 2501.4 2549.5 2844.12 2627.27 2661.61 2632.1 2443.36 2460.53 2332.66 2255.55 1939.22 1890.95 1695.48 1689.71 1517.42 1349 1180 1149.02 1100.99 982.965 851.305 829.069 685.4 597.622 664.284 660.732 546.362 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="10" ClassIndex="1">
+      <PDF Name="Likelihood PDF Bkg[10]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="dphijet2jet3_bgd_original" NBins="50" XMin="7.9904857557266951e-06" XMax="3.1415405273437500e+00" HasEquidistantBins="1">
+          2678.29 1235.13 2012.85 2369.62 1705.45 1822.99 3237.85 3366.33 3228.36 4250.64 3086.88 3644.4 3582.48 1319.1 3176.32 2946.18 1769.88 2596.22 2210.45 2300.19 781.519 6594.03 2011.9 1754.33 1976.55 1353.53 1809.69 1414.8 1198.12 1873.75 2013.02 621.651 1431.01 2677.23 767.388 1390.13 2333.98 1045.97 1073.83 902.285 2016.86 1187.48 745.501 1498.68 1486.62 410.989 614.208 669.362 1177.8 383.89 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="11" ClassIndex="0">
+      <PDF Name="Likelihood PDF Sig[11]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="dphijet2jet3_boost12_sig_original" NBins="50" XMin="2.0878253508271882e-06" XMax="3.1415407657623291e+00" HasEquidistantBins="1">
+          2093.03 2266.58 2212.92 2534.47 2542.78 2762.23 2873.95 3217.52 3550.31 3679.53 3289.54 3385.16 3278.38 3386.36 3600.68 3500.35 3485.25 3432.38 3780.34 3639.26 3773.88 3437.92 3339.98 3091.13 3082.88 2712.63 2253.07 1915.41 1742.12 1566.44 1224.19 1101.36 883.756 768.869 778.36 754.477 643.641 573.019 511.199 565.371 401.346 367.351 307.843 304.781 287.943 225.825 224.688 224.329 195.12 248.795 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="11" ClassIndex="1">
+      <PDF Name="Likelihood PDF Bkg[11]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="dphijet2jet3_boost12_bgd_original" NBins="50" XMin="2.0878253508271882e-06" XMax="3.1415407657623291e+00" HasEquidistantBins="1">
+          3277.65 1149.32 1919.72 3311.24 4697.11 2189.79 3648.54 4082.94 5306.29 2598.03 3731.42 4867.38 3050.06 3558.66 3419.9 3075.87 4336.89 2664.98 2665.4 2375.12 1989.5 970.33 2494.63 2779.77 1152.69 2918.44 1388.57 1598.23 1229.41 1179.09 819.493 943.291 1507.09 1130.36 369.303 227.768 1404.91 822.848 856.366 776.021 1377.48 460.994 1040.04 651.47 349.094 120.967 697.531 55.3805 264.862 253.402 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="12" ClassIndex="0">
+      <PDF Name="Likelihood PDF Sig[12]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="dptjet1jet3_sig_original" NBins="50" XMin="9.3678914709016681e-04" XMax="7.4973422288894653e-01" HasEquidistantBins="1">
+          303.237 789.427 1229.75 1769.12 2216.17 2602.34 2972.97 3432.5 3901.7 4233.27 4250.18 4427.44 4807.39 4967.51 4973.81 5010.16 5127.09 5054.83 4927.24 4574.06 4492.47 3935.41 3764.49 3207.91 3125.99 2568.61 2124.22 1660.86 1201.41 824.65 628.423 378.715 212.078 153.546 70.0736 56.6735 22.1233 14.2922 3.70363 0.521528 2.2213 0.00264508 0.00147308 0.0031915 0.104466 0 0.00143725 0 0 0 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="12" ClassIndex="1">
+      <PDF Name="Likelihood PDF Bkg[12]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="dptjet1jet3_bgd_original" NBins="50" XMin="9.3678914709016681e-04" XMax="7.4973422288894653e-01" HasEquidistantBins="1">
+          191.098 60.5633 1113.36 1046.79 1312.15 2961.45 2725.3 2512.72 2618.51 2969.19 2408.87 5521.93 3464.57 6402.87 4307.13 4118.86 3469.29 5326.19 7212.33 3095.32 5431.55 6594.07 3635.61 4195.51 3416.12 2147.01 2110.82 2801.23 1189.88 886.241 1008.42 707.501 622.571 67.2465 41.5958 28.2937 5.01449 1.54126 1.08879 8.69071 0.975496 1.45645 14.2653 0.293142 0.00774468 0.000279788 0.0264389 4.316e-05 7.79191e-05 0.00125868 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="13" ClassIndex="0">
+      <PDF Name="Likelihood PDF Sig[13]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="isotropy_sig_original" NBins="50" XMin="9.1624818742275238e-02" XMax="9.9960052967071533e-01" HasEquidistantBins="1">
+          1.19936 16.8346 78.328 102.915 154.351 217.895 397.223 448.985 587.418 696.182 863.307 950.44 957.812 1191.24 1277.04 1302.89 1370.28 1583.35 1785.46 1888.74 1956.43 2118.49 2301.96 2407.45 2487.2 2747.87 2748.6 2951.81 2947.27 3247.88 3073.51 3369.93 3545.3 3349.56 3770.98 3974.06 3736.5 3760.84 3897.62 3768.75 3619.39 3585.59 3396.72 2956.68 2499.82 2152.82 1591.11 1245.13 693.422 244.132 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="13" ClassIndex="1">
+      <PDF Name="Likelihood PDF Bkg[13]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="isotropy_bgd_original" NBins="50" XMin="9.1624818742275238e-02" XMax="9.9960052967071533e-01" HasEquidistantBins="1">
+          2.34758e-07 0.0209387 6.2209 3.62377 5.06831 155.016 808.791 13.1258 157.546 271.009 113.209 394.13 1884.25 979.259 785.13 690.262 1194.46 1226.46 1831.33 799.445 961.548 1275.87 661.416 910.192 872.168 1337.4 3424.28 1754.94 3001.82 5050.22 1701.17 3685.37 3997.72 3210.56 3588.37 6218.71 4538.69 3831.16 4041.25 4309.52 4858.14 3677.78 5181.46 4675.48 1912.86 2509.4 2913.7 1674.08 458.405 203.507 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="14" ClassIndex="0">
+      <PDF Name="Likelihood PDF Sig[14]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="maxdijetmass_sig_original" NBins="50" XMin="2.2275073826313019e-01" XMax="9.8893421888351440e-01" HasEquidistantBins="1">
+          0.00586445 4.67964 8.34504 11.7752 54.5131 93.1217 86.4619 213.427 298.18 462.784 611.624 861.757 1082.22 1492.99 1820.58 2115.47 2446.95 2978.64 3150.85 3254.41 3386.15 3820.91 3876.88 3981.62 4250.64 4291.51 4085.14 4196.47 4100.41 4131.94 4208.21 3874.12 3865.57 3448.19 3211.44 3037.99 2540.9 2382.96 2208.01 2202.36 1717.52 1656.82 1431.28 1202.42 940.772 634.4 262.957 18.7166 3.62491 0 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="14" ClassIndex="1">
+      <PDF Name="Likelihood PDF Bkg[14]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="maxdijetmass_bgd_original" NBins="50" XMin="2.2275073826313019e-01" XMax="9.8893421888351440e-01" HasEquidistantBins="1">
+          0 0 0 1.15741e-07 0.000370952 253.403 0.000292267 0.50058 3.31519 5.37468 8.74832 163.275 197.209 116.056 545.833 419.39 775.646 452.322 3202.04 2418.36 724.975 1708.48 1778.19 2346.94 1941.58 2179.72 1762.06 2302.54 5499.11 3276.04 4233.83 8542.77 7600.15 4053.36 3937.06 3989.27 3779.77 4724.67 4641.52 5260.95 2412.32 3271.33 3085.62 2854.05 2216.31 422.376 478.489 142.795 27.0351 0.678906 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="15" ClassIndex="0">
+      <PDF Name="Likelihood PDF Sig[15]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="mindijetmass_sig_original" NBins="50" XMin="7.3299040086567402e-03" XMax="5.8033728599548340e-01" HasEquidistantBins="1">
+          118.216 1234.36 3105.06 4283.62 4937.18 5559.38 5197.11 5553.28 5162.49 4854.02 4380.26 4472 3653.99 3613.81 3491.08 2999.18 2681.76 2535.22 2142.71 1964.72 1790.31 1622.2 1682.35 1505.94 1451.19 1342.2 1366.4 1203.33 1193.7 987.786 1085.49 1015 1047.82 969.602 1051.61 933.346 1008.06 811.989 880.409 858.981 753.342 648.598 659.018 560.144 446.795 461.082 323.048 240.246 132.901 46.3493 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="15" ClassIndex="1">
+      <PDF Name="Likelihood PDF Bkg[15]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="mindijetmass_bgd_original" NBins="50" XMin="7.3299040086567402e-03" XMax="5.8033728599548340e-01" HasEquidistantBins="1">
+          14.0847 107.693 557.79 832.752 1254.3 1029.79 3638.58 3487.23 2703.77 3795.93 3860.31 4916.2 4730.99 5126.69 5093.13 3612.11 4891.72 3958.94 2543.75 2474.23 3171.79 3435.85 2408.37 1343.34 1161.79 1276.37 1568.7 2506.86 3638.07 571.575 1045.78 1468.32 2984.3 2885.62 429.448 435.972 1356.48 404.293 873.334 898.273 1639.54 901.254 1295.04 122.405 241.09 726.559 254.72 37.6382 13.9463 28.8527 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="16" ClassIndex="0">
+      <PDF Name="Likelihood PDF Sig[16]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="sphericity_sig_original" NBins="50" XMin="5.0881877541542053e-04" XMax="9.2752724885940552e-01" HasEquidistantBins="1">
+          120.856 761.33 1490.21 2051.5 2363.85 2762.6 3172.16 3190.76 3532.41 3729.14 3885.52 3878.72 3825.31 3624.31 3813.57 3812.14 3740.7 3560.65 3625.14 3449.32 3370.23 3158.73 2924.99 2863.84 2681.04 2400.43 2536.44 2375.64 2206.02 1964.04 1878.35 1824.82 1732.71 1373.2 1303.16 1172.93 906.175 910.112 646.424 559.01 330.663 231.152 101.63 93.8394 33.8886 29.3302 11.0697 6.90558 0.00328627 1.78795 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="16" ClassIndex="1">
+      <PDF Name="Likelihood PDF Bkg[16]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="sphericity_bgd_original" NBins="50" XMin="5.0881877541542053e-04" XMax="9.2752724885940552e-01" HasEquidistantBins="1">
+          323.339 2261.17 5332.94 4234.37 5731.06 5758.06 3520.81 3573.9 3332.79 3780.39 5182.57 2718.76 5605.58 4147.03 5112.36 3276.39 4895.29 3086.49 2193.04 2488.3 2996.78 787.776 1990.83 1954.33 1683.15 1882.89 1142.65 1666.96 1515.93 1308.15 434.669 330.13 245.426 433.851 1083.7 108.595 273.851 119.561 724.22 116.167 16.7844 37.5385 2.71502 342.269 1.4764 0.000623385 0.0164092 0.000932924 0.42439 0.0016103 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="17" ClassIndex="0">
+      <PDF Name="Likelihood PDF Sig[17]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="thetajet1_boost12_sig_original" NBins="50" XMin="2.0336566492915154e-02" XMax="3.1385445594787598e+00" HasEquidistantBins="1">
+          0.887483 3.0253 21.7471 51.2668 98.1434 179.558 317.174 488.218 722.414 942.886 1284.74 1642.4 1841.86 2190.16 2553.98 2973.66 3070.67 3457.16 3516.79 3937.13 3812.84 4338.43 4672.51 4309.63 4345.24 4294.17 4290.13 4150.24 4207.58 4107.82 3863.49 3692.13 3410.22 2990.93 2623.93 2319.18 2170.06 1809.91 1571.05 1159.96 994.804 596.771 424.391 249.848 181.314 74.4515 31.753 18.9611 9.50888 3.58662 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="17" ClassIndex="1">
+      <PDF Name="Likelihood PDF Bkg[17]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="thetajet1_boost12_bgd_original" NBins="50" XMin="2.0336566492915154e-02" XMax="3.1385445594787598e+00" HasEquidistantBins="1">
+          0.0360424 0.0753535 2.34029 138.179 338.763 488.775 1176.08 1104.18 3034.06 2737.51 960.352 2366.09 1585.34 2518.54 4390 3977.37 3316.8 5108.29 1178.15 5091.39 2003.47 3411.26 3341.54 2781.58 3672.98 1557.94 2185.13 2584.76 2027.34 3076.84 3579.32 3407.25 3998.62 1910.05 3105.03 2135.46 1768.13 1116.59 4612.8 778.484 1949.19 1630.6 568.605 317.158 642.894 53.9507 8.20662 1.87191 16.3152 0.00130929 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="18" ClassIndex="0">
+      <PDF Name="Likelihood PDF Sig[18]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="thetajet3_boost12_sig_original" NBins="50" XMin="2.0185040775686502e-03" XMax="3.1386954784393311e+00" HasEquidistantBins="1">
+          37.0536 286.904 664.281 1041.83 1490.51 1777.8 1930.01 2310.81 2286.96 2280.8 2398 2382.78 2393.93 2412.5 2359.25 2531.77 2362.52 2558.45 2350.88 2281.13 2352.31 2177.79 2316.36 2410.95 2257.41 2380.72 2415.06 2361.59 2433.28 2445.23 2486.35 2410.11 2450.55 2588.26 2536.48 2431.02 2566.93 2442.45 2422.17 2347.47 2333.57 2261.03 2141.37 1948.05 1602.84 1346.67 1032.12 635.011 288.42 59.0159 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+    <PDFDescriptor VarIndex="18" ClassIndex="1">
+      <PDF Name="Likelihood PDF Bkg[18]" MinNSmooth="15" MaxNSmooth="15" InterpolMethod="3" KDE_type="1" KDE_iter="1" KDE_border="1" KDE_finefactor="1.0000000000000000e+00">
+        <Histogram Name="thetajet3_boost12_bgd_original" NBins="50" XMin="2.0185040775686502e-03" XMax="3.1386954784393311e+00" HasEquidistantBins="1">
+          9.61073 89.3009 766.537 960.265 1005.51 2444.71 2016.15 1681.83 1026.74 1804.78 1969.79 1226.35 2239.57 2603.76 4378.44 1250.95 3641.3 3012.84 2854.15 1322.57 3011.13 3603.3 2279.96 1976.67 2636.96 4011.68 4748.73 2615.49 2110.91 2288.21 1443.15 1527.72 2956.58 1945.32 4140.99 2717.4 1602.91 1991.36 1173.65 1483.68 1305 3919.04 1374.36 1300.1 614.285 1272.69 615.001 489.911 264.39 29.995 
+        </Histogram>
+      </PDF>
+    </PDFDescriptor>
+  </Weights>
+</MethodSetup>

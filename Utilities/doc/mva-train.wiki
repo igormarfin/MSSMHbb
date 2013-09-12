@@ -1,0 +1,73 @@
+== Introduction ==
+
+''' @2012 I. Marfin '''   ''<Higgs DESY Group>''
+
+There is a macro '' 'TMVAClassificationCreator.C' '' which performs training using samples.
+It can be found  at '''Analysis/Utilities/test/'''.
+
+
+== How to run the script? == 
+
+'' 'TMVAClassificationCreator.C' ''  requires a few additonal files with settings.
+
+Here is an example of the running:
+      root -b `cat list_train_samples | awk '{print $1}'` 'TMVAClassificationCreator.C("list_train_samples","BDTGrad","KinVars4","exclude_loose2.lst","options_book_BDTGrad.lst","options_train_test.lst")'
+where,
+*  'list_train_samples' file contains the list of samples. 'cat list_train_samples':
+
+   /data/user/marfin/MVAPythia/tmva/../tmp_dir3/theMergeList-pythia_bEnriched_150_v2.root  theMergeList-pythia_bEnriched_150_v2  BKG  1.0  1.0  1.0  1
+   /data/user/marfin/MVAPythia/tmva/../tmp_dir3/theMergeList-pythia_bEnriched_30_50_v2.root  theMergeList-pythia_bEnriched_30_50_v2  BKG  1.0  1.0  1.0  1
+   /data/user/marfin/MVAPythia/tmva/../tmp_dir3/theMergeList-pythia_bEnriched_50_150_v2.root  theMergeList-pythia_bEnriched_50_150_v2  BKG  1.0  1.0  1.0  1
+   /data/user/marfin/MVAPythia/tmva/../tmp_dir3/theMergeList-SUSYBBHToBB_M-120_7TeV-pythia6-tauola.root  theMergeList-SUSYBBHToBB_M-120_7TeV-pythia6-tauola  SGN  1.0  1.0  1.0  1
+   /data/user/marfin/MVAPythia/tmva/../tmp_dir3/theMergeList-SUSYBBHToBB_M-90_7TeV-pythia6-tauola.root theMergeList-SUSYBBHToBB_M-90_7TeV-pythia6-tauola SGN 1.0 1.0 1.0 1
+   /data/user/marfin/MVAPythia/tmva/../tmp_dir3/theMergeList-SUSYBBHToBB_M-250_7TeV-pythia6-tauola.root theMergeList-SUSYBBHToBB_M-250_7TeV-pythia6-tauola SGN 1.0 1.0 1.0 1
+ 
+* "BDTGrad" -- name of the method supported by TMVAClassificationCreator.C. 'grep usage TMVAClassificationCreator.C' 
+can help you to know what other methods are available
+* "KinVars4" -- name of the tree produced by MVATrainer.
+* "exclude_loose2.lst" -- list of variables which must be excluded from training
+* "options_book_BDTGrad.lst" -- file with settings of the method. 'cat options_book_BDTGrad.lst' :
+ 
+  ///BDTGrad
+  NTrees=1000 
+  BoostType=Grad
+  Shrinkage=0.30
+  SeparationType=GiniIndex
+  nCuts=20
+  UseWeightedTrees=True
+  UseBaggedGrad=True
+  GradBaggingFraction=0.5
+  NNodesMax=10
+
+  ///No pruning
+  PruneMethod=NoPruning
+
+* "options_train_test.lst" -- file having common settings for training and testing (TMVA::Factory::PrepareTrainingAndTestTree() ). 
+'cat options_train_test.lst':
+
+  ///Some options common for trainig and testing
+
+  ///nameMVA=100ktrain_
+  nTrain_Signal=100000:nTrain_Background=100000:SplitMode=Random:SplitSeed=100:NormMode=EqualNumEvents:!V
+  nTest_Signal=100000:nTest_Background=100000
+
+
+
+== For what methods are settings file available?  ==
+
+please, go to '''Analysis/Utilities/test/'''.
+
+Here you can find .lst file with settings for the methods
+
+# AddBoost BDT (sufix 'BDT')
+# Gradient BDT (sufix, BDTGrad)
+#  Gradient v.2 BDT (sufix, BDTGrad2)
+# Loose Likelihood (sufix, Likelihood)
+
+
+
+
+== Contact ==
+
+Igor Marfin <'''Igor.Marfin@desy.de'''>
+

@@ -1,0 +1,174 @@
+#ifndef ConfigParser_h
+#define ConfigParser_h
+
+/// -*-c++-*-
+// Class that reads config files using the boost property trees.
+// A default configuration file has to be provided.
+// Options provided by the user are preferred.
+
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <sstream>
+#include <exception>
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <boost/filesystem.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ini_parser.hpp>
+#include <boost/lexical_cast.hpp>
+
+
+class ConfigParser {
+ public:
+  ConfigParser();
+  ConfigParser(const std::string &defaultfile, const std::string &cfg);
+  template <class T> T Get (const std::string &str) const;
+  template <class T> std::vector<T> GetVec (const std::string &str) const;
+  template <class T> T GetScenario (const std::string &scenario, const std::string &str) const; //FIXME: scenario functionality not really part of this class?
+  template <class T> std::vector<T> GetVecScenario (const std::string &scenario, const std::string &str) const; //FIXME: scenario functionality not really part of this class?
+  
+private:
+  void PrintOptions() const;
+  bool OptionExistsInCFG(const std::string &str) const;
+  void CheckTypos() const;
+  void PrintMarker() const;
+  template<typename T> std::vector<T> to_array(const std::string& s) const;
+  bool replace(std::string& str, const std::string& from, const std::string& to) const;
+  boost::property_tree::ptree pt_default_;
+  boost::property_tree::ptree pt_config_;
+};
+
+
+//----------------------------------------------------------------------------------------------------
+
+// Implementation:
+
+bool ConfigParser::replace(std::string& str, const std::string& from, const std::string& to) const
+{
+  size_t start_pos = str.find(from);
+  if(start_pos == std::string::npos)
+    return false;
+  str.replace(start_pos, from.length(), to);
+  return true;
+}
+
+template <class T> std::vector<T> ConfigParser::GetVec (const std::string &str) const {
+  return this->to_array<T>(this->Get<std::string>(str));
+}
+
+template <class T> std::vector<T> ConfigParser::GetVecScenario (const std::string &scenario, const std::string &str) const {
+  std::stringstream sc;
+  sc << "Scenario_" << scenario << "." << str;
+  return this->GetVec<T>(sc.str());
+}
+
+template<typename T> std::vector<T> ConfigParser::to_array(const std::string& s) const {
+  std::string str = s;
+  while (this->replace(str, std::string("  "), std::string(" ")) ) {}
+  std::vector<T> result;
+  std::stringstream ss(str);
+  std::string item;
+  while(std::getline(ss, item, ' ')) result.push_back(boost::lexical_cast<T>(item));
+
+
+  return result;
+}
+
+ConfigParser::ConfigParser() {
+  std::cout << "@ConfigParser::ConfigParser(): error: default constructor not supported!" << std::endl;
+  throw std::exception();
+}
+
+ConfigParser::ConfigParser(const std::string &defaultfile, const std::string &cfg) {
+  if (boost::filesystem::exists(defaultfile) && boost::filesystem::exists(cfg)) {
+  } else {
+    std::cout << "@ConfigParser::ConfigParser(): error: Could not find "
+      << defaultfile << " and/or " << cfg << std::endl;
+    throw std::exception();
+  }
+  boost::property_tree::ini_parser::read_ini(defaultfile, pt_default_);
+  boost::property_tree::ini_parser::read_ini(cfg, pt_config_);
+
+  this->CheckTypos();
+  this->PrintOptions();
+ 
+}
+
+template <class T> T ConfigParser::Get (const std::string &str) const {
+  if(this->OptionExistsInCFG(str) ) {
+    return pt_config_.get<T>(str.c_str());
+  } else {
+    return pt_default_.get<T>(str.c_str());
+  }
+}
+
+template <class T> T ConfigParser::GetScenario (const std::string &scenario, const std::string &str) const {
+  std::stringstream sc;
+  sc << "Scenario_" << scenario << "." << str;
+  return this->Get<T>(sc.str());
+}
+
+bool ConfigParser::OptionExistsInCFG(const std::string &str) const {
+  try {
+    pt_config_.get<std::string>(str.c_str());
+  } catch ( ... ) {
+    return false;
+  }
+  return true;
+}
+
+void ConfigParser::PrintMarker() const {
+  std::cout << "------------------------" << std::endl;
+} 
+
+void ConfigParser::PrintOptions() const {
+  std::cout << "The following configuration was applied:" << std::endl;
+  this->PrintMarker();
+  for (auto& section : pt_default_)
+    {
+      std::cout << '[' << section.first << "]\n";
+      for (auto& key : section.second) {
+        std::stringstream name;
+        name << section.first << "." << key.first;
+     
+        const bool found = this->OptionExistsInCFG(name.str());
+       
+        if(!found) {
+          // default
+          std::string str = key.second.get_value<std::string>();
+          while (this->replace(str, std::string("  "), std::string(" ")) ) {}
+          std::cout << key.first << " = " << str << " # default\n";
+        } else {
+          std::string str = pt_config_.get<std::string>(name.str().c_str());
+          while (this->replace(str, std::string("  "), std::string(" ")) ) {}
+          //use the user defined values
+          std::cout << key.first << " = " << str << " # user defined\n";
+        }
+     
+        
+      }
+      std::cout << std::endl;
+    }
+  this->PrintMarker();
+}
+
+void ConfigParser::CheckTypos() const {
+  for (auto& section : pt_config_)
+    {
+      for (auto& key : section.second) {
+        std::stringstream name;
+        name << section.first << "." << key.first;
+     
+        try {
+          pt_default_.get<std::string>(name.str().c_str());
+        } catch ( ... ) {
+          std::cout << "@ConfigParser::CheckTypos(): error - Could not found option " << name.str() << " in the default configuration file. Maybe a typo?" << std::endl;
+          throw std::exception();
+          
+        }
+      }
+    }
+}
+#endif

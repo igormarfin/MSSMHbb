@@ -1,0 +1,47 @@
+//#include "mssm_xs_tools.C"
+#include "Analysis/Utilities/interface/mssm_xs_tools.h"
+
+double XSCalculator(double mA, double tanb, TString pwd="./")
+{
+
+//gROOT->ProcessLine(".L mssm_xs_tools.C");
+
+mssm_xs_tools mssm_xs;
+TString file = pwd + "out.mhmax_mu200_8_nnlo.tanBeta_gte1_FHv274.root";
+mssm_xs.SetInput(const_cast<char*>(file.Data())); 
+
+
+
+   // Branching ratio   
+   double br_Abb  = mssm_xs.Give_BR_A_bb(mA,tanb);
+   double br_hbb  = mssm_xs.Give_BR_h_bb(mA,tanb);
+   double br_Hbb  = mssm_xs.Give_BR_H_bb(mA,tanb);
+
+   // Cross section (5-flavour scheme)
+   double xSecbbA = mssm_xs.Give_Xsec_bbA5f(mA,tanb);
+   double xSecbbh = mssm_xs.Give_Xsec_bbh5f(mA,tanb);
+   double xSecbbH = mssm_xs.Give_Xsec_bbH5f(mA,tanb);
+
+   // 
+
+   double xs = -1.;
+
+   if ( mA < 130 )
+   {
+      xs = xSecbbA*br_Abb + xSecbbh*br_hbb;
+   } else if ( mA == 130 )
+   {
+      xs = xSecbbA*br_Abb + xSecbbh*br_hbb + xSecbbH*br_Hbb;
+   } else
+   {
+      xs = xSecbbA*br_Abb + xSecbbH*br_Hbb;
+   }
+
+
+
+
+xs/=1000;
+
+//cout<<"XS("<<mA<<","<<tanb<<") ,pb= "<<xs<<endl;
+return xs;
+}

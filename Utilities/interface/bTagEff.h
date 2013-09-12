@@ -1,0 +1,559 @@
+/// -*-c++-*-
+#ifndef bTagEff_h
+#define bTagEff_h
+
+#include <vector>
+#include <string>
+#include <TFile.h>
+#include <TH2D.h>
+#include <TRandom3.h>
+#include <map>
+#include <TF1.h>
+#include <boost/assign/list_of.hpp>
+#include <TMath.h>
+
+class bTagEff {
+private:
+ 
+  bool forceMerging_;
+  TF1 f_error_;
+
+  std::map<std::string, std::vector<double> > BBoverBplusBB_pars;
+  std::map<std::string, std::vector<double> > CCoverCplusCC_pars;
+
+ 
+
+  void testParameter(const int iflav,const std::string& theBtagLabel, const std::string &scenario, double pt, double eta) {
+
+    if(iflav == -1 || iflav > 4) {
+      std::cout << "error: bTagEff.h: iflav problem: iflav = " << iflav << std::endl;
+      throw std::exception();
+    }
+  
+    if(flavlabel[iflav] == "udsg" || flavlabel[iflav] == "b" || flavlabel[iflav] == "c") {
+     
+    } else {
+      std::cout << "error: bTagEff: only flavours udsg,b, or c are accepted but '" << flavlabel[iflav] << "' was provided." << std::endl;
+      throw std::exception();
+    }
+    if(pt < 20.0 /*|| pt > 800.*/) {
+      std::cout << "error: bTagEff: pt out of range: " << pt << std::endl;
+      throw std::exception();
+    }
+   
+    if(theBtagLabel != "CSVT") {
+      std::cout << "error: bTagEff: btagging " << theBtagLabel<< " not supported by bTagEff. Only CSVT will work." << std::endl;
+      throw std::exception();
+    }
+
+  }
+
+  // void fillMap(std::map<std::string, double> &m, std::string s, double value)
+  //   {
+  //     //only add new entries 
+  //     if(m.find(s) == m.end()) {
+  //       m.insert(std::pair<std::string, double>(s, value));
+  //     } else {
+  //       std::cout << "error: bTagEff: element in fit data map used for merging already existing" << std::endl;
+  //       throw std::exception();
+  //     }
+  //   }
+
+  void fillMap(
+               std::vector<double> parvector,
+               std::map<std::string, std::vector<double> > &m,
+               const std::string scenario
+               ) 
+  {
+    std::pair<std::string, std::vector<double> > p = std::pair<std::string, std::vector<double> >(scenario,
+                                                                                                  parvector
+                                                                                                  );
+
+   
+      m.insert(p);
+
+  
+  }
+
+  void fillMergingData()
+  {
+   
+    //mediummass
+    /* BBoverBplusBB p ) ( -3.819104856279580e-03 ) ( 2.352221947354410e-04 */
+    /* CCoverC p ) ( 1.622516928373815e+00 ) ( 1.098995160970648e+03 ) ( -5.666156576283472e+02 ) ( -7.428701489625740e-01 */
+
+
+
+    //highmass
+    /* BBoverBplusBB p ) ( 2.820726201665347e-03 ) ( 2.336350037238651e-04 */
+    /* CCoverC p ) ( 3.928417049427955e-01 ) ( 5.105145132855149e+02 ) ( 3.177947593537644e+02 ) ( 4.653429302514134e-01 */
+
+
+
+    //veryhighmass
+    /* BBoverBplusBB p ) ( -2.802778371145249e-03 ) ( 2.865624622074772e-04 */
+    /* CCoverC p ) ( 4.812526775114680e-01 ) ( 6.344229811250940e+02 ) ( 1.799781064881460e+02 ) ( 3.703873914138270e-01 */
+
+
+    this->fillMap(
+                  boost::assign::list_of(-3.819104856279580e-03 ) ( 2.352221947354410e-04),
+                  BBoverBplusBB_pars,
+                  "MediumMass2012"
+                  );
+    
+
+
+    this->fillMap(
+                  boost::assign::list_of( 2.820726201665347e-03 ) ( 2.336350037238651e-04),
+                  BBoverBplusBB_pars,
+                  "HighMass2012"
+                  );
+    
+
+
+
+
+    this->fillMap(
+                  boost::assign::list_of( -2.802778371145249e-03 ) ( 2.865624622074772e-04),
+                  BBoverBplusBB_pars,
+                  "VeryHighMass2012"
+                  );
+    
+
+    this->fillMap(
+                  boost::assign::list_of( 1.622516928373815e+00 ) ( 1.098995160970648e+03 ) ( -5.666156576283472e+02 ) ( -7.428701489625740e-01),
+                  CCoverCplusCC_pars,
+                  "MediumMass2012"
+                  );
+    
+
+
+    this->fillMap(
+                  boost::assign::list_of( 3.928417049427955e-01 ) ( 5.105145132855149e+02 ) ( 3.177947593537644e+02 ) ( 4.653429302514134e-01),
+                  CCoverCplusCC_pars,
+                  "HighMass2012"
+                  );
+    
+
+    this->fillMap(
+                  boost::assign::list_of(4.812526775114680e-01 ) ( 6.344229811250940e+02 ) ( 1.799781064881460e+02 ) ( 3.703873914138270e-01),
+                  CCoverCplusCC_pars,
+                  "VeryHighMass2012"
+                  );
+    
+
+  }
+
+
+
+
+public:
+  std::string file;
+  std::string onloff;
+  //   const int& nflav;
+  //   const int& nbtag;
+  std::string flavlabel[5];
+  std::string sbtag[4];
+
+  TFile* hfile;
+  TH2D*** hrel2D; // array of TH2D pointers (nflav * nbtag)
+  TH2D*** herr2D; // for interpolation of errors
+
+  int nflav;
+  int nbtag;
+
+  //if this method is used, an exception will be thrown, when the not-merged efficiency functions are called!
+  void forceMerging(bool b)
+  {
+    forceMerging_ = b;
+  }
+
+  bTagEff(){
+    std::cout << "error: bTagEff: default constructor not to be used!" << std::endl;
+    throw std::exception();
+  };
+
+  bTagEff(const std::string& theFile, 
+          const std::string& theonloff,
+          const std::string* theFlavlabel,
+          const std::string* theBtagLabel,
+          int theNflav = 3,
+          int theNbtag = 4) : forceMerging_(false), f_error_(TF1("mixture_error", "sqrt([0]+x*x*[1]+2.0*x*[2])",0, 3500.0))
+  {
+    //fill fit data used for merging
+    this->fillMergingData();
+
+
+    nflav = theNflav;
+    nbtag = theNbtag;
+
+    if (theonloff != "online" && theonloff != "offline") {
+      std::cout << "error: bTagEff constructor: Bad online/offline mode " << theonloff << std::endl;
+      return;
+    }
+    hfile = TFile::Open( theFile.c_str() );
+    if (hfile == NULL) {
+      std::cout << "error: bTagEff constructor: Cannot open file " << theFile << std::endl;
+      return;
+    }
+
+    onloff = theonloff;
+    for (int iflav=0; iflav<nflav; ++iflav)
+      flavlabel[iflav] = theFlavlabel[iflav];
+
+    for (int ibtag=0; ibtag<nbtag; ++ibtag)
+      sbtag[ibtag] = theBtagLabel[ibtag];
+
+    // dynamic allocation of histogram pointer arrays
+    hrel2D = new TH2D**[nflav];
+    herr2D = new TH2D**[nflav];
+    for (int iflav=0; iflav<nflav; ++iflav) {
+      hrel2D[iflav] = new TH2D*[nbtag];
+      herr2D[iflav] = new TH2D*[nbtag];
+    }
+
+    for (int iflav=0; iflav<nflav; ++iflav) {
+      for (int ibtag=0; ibtag<nbtag; ++ibtag) {
+        if (theonloff == "online") {
+          //#ifdef SMOOTH
+          std::string shname( Form("pteta_%s_%s_releff_div-smp",sbtag[ibtag].c_str(),flavlabel[iflav].c_str()) );
+          //string shname( Form("pteta_%s_%s_releff_sm0",sbtag[ibtag].c_str(),flavlabel[iflav].c_str()) );
+          std::cout << "smoothed eff from " << shname << std::endl;
+          //#else
+          //	  string shname( Form("pteta_%s_%s_releff_div",sbtag[ibtag].c_str(),flavlabel[iflav].c_str()) );
+          //#endif
+
+          hrel2D[iflav][ibtag] = (TH2D*) hfile->Get( shname.c_str() );
+          if (hrel2D[iflav][ibtag] == NULL) std::cout << "Histogram not found: " 
+                                                      << shname.c_str() << std::endl;
+          std::cout << "Using efficiency histogram " << hrel2D[iflav][ibtag]->GetName() << " nbinsx= " << hrel2D[iflav][ibtag]->GetXaxis()->GetNbins()
+                    << " nbinsy= " << hrel2D[iflav][ibtag]->GetYaxis()->GetNbins() << std::endl;
+        } else {
+          hrel2D[iflav][ibtag] = (TH2D*) hfile->Get( Form("pteta_%s_%s_eff_div",sbtag[ibtag].c_str(),flavlabel[iflav].c_str()) );
+          if (hrel2D[iflav][ibtag] == NULL) std::cout << "Histogram not found: " 
+                                                      << Form("pteta_%s_%s_eff_div",sbtag[ibtag].c_str(),flavlabel[iflav].c_str()) << std::endl;
+          // create the error histogram
+          herr2D[iflav][ibtag] = NULL;
+          if (hrel2D[iflav][ibtag] != NULL) {
+            herr2D[iflav][ibtag] = new TH2D( *hrel2D[iflav][ibtag] );
+            herr2D[iflav][ibtag]->SetName( Form("%s%s","Bterror_",hrel2D[iflav][ibtag]->GetName()) );
+            for (int ibinx=1; ibinx<=hrel2D[iflav][ibtag]->GetXaxis()->GetNbins(); ++ibinx) {
+              for (int ibiny=1; ibiny<=hrel2D[iflav][ibtag]->GetYaxis()->GetNbins(); ++ibiny) {
+                herr2D[iflav][ibtag]->SetBinContent(ibinx,ibiny,
+                                                    hrel2D[iflav][ibtag]->GetBinError(ibinx,ibiny));
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+ 
+
+  double eff(int iflav,const std::string& theBtagLabel,double pt,double eta) {
+
+    if(forceMerging_) {
+      std::cout << "error: bTagEff.h: unmerged efficiency function called but merging was forced!" << std::endl;
+      throw std::exception();
+    }
+
+
+    if (iflav<0 || iflav>=nflav) {
+      std::cout << "error: eff: bad flavor " << iflav << " " << nflav << std::endl;
+      return -999999;
+    }
+    int ibtag = -1;
+    for (int jbtag=0; jbtag<nbtag; ++jbtag) {
+      if (sbtag[jbtag] == theBtagLabel) {
+        ibtag = jbtag;
+        break;
+      }
+    }
+    if (ibtag == -1) {
+      std::cout << "Bad btag type requested " << theBtagLabel << " " << nbtag << std::endl;
+      return -999999;
+    }
+    //#ifndef PTMAX300
+    // to avoid sampling outside of histogram borders
+    /* if (pt>=300) pt=299.9;
+     */
+    if (pt>=800) pt=799.999;
+    if (pt<=20.0) pt=20.000001;
+ 
+ 
+
+    // just to test
+    const double value = hrel2D[iflav][ibtag]->Interpolate(pt,fabs(eta));
+    if ( value <= 0) {
+      std::cout << "Warning : eff() " << theBtagLabel
+                << "  " << onloff
+                << " iflav=" << iflav
+                << " zero for " << pt << " " << eta << std::endl;
+      return 0;
+    }
+ 
+    return  value > 0.0 ? value : 0.0;
+  }
+
+
+  //eff_merged accepts only udsg,c,b flavour categories!
+  double eff_merged(const int iflav,const std::string& theBtagLabel, const std::string &scenario, double px, double py, double pz, double eta) {
+    const double pt = TMath::Sqrt(px*px+py*py);
+    const double p = TMath::Sqrt(px*px+py*py+pz*pz);
+    
+    double returnvalue;
+
+    this->testParameter( iflav,theBtagLabel, scenario, pt, eta);
+
+    //try to find c and cc and b and bb
+    int iflav_c = -1;
+    int iflav_cc = -1;
+    int iflav_b = -1;
+    int iflav_bb = -1;
+     
+    for(int i = 0; i < nflav; i++) {
+      if(flavlabel[i] == "c")
+        iflav_c = i;
+      if(flavlabel[i] == "cc")
+        iflav_cc = i;
+
+      if(flavlabel[i] == "b")
+        iflav_b = i;
+      if(flavlabel[i] == "bb")
+        iflav_bb = i;
+    }
+     
+    if(iflav_c == -1 || iflav_cc == -1 || iflav_b == -1 || iflav_bb == -1  ) {
+      std::cout << "error: bTagEff: bTagEff flavlabel array has strange content." << std::endl;
+      throw std::exception();
+    }
+
+ 
+
+
+
+    if(flavlabel[iflav] == "c") {
+      //get c and cc efficiencies
+      const double eff_c = this->eff(iflav_c,"CSVT",pt,eta);
+      const double eff_cc = this->eff(iflav_cc,"CSVT",pt,eta);
+    
+      const std::vector<double> &par = CCoverCplusCC_pars[scenario];
+      const double CCweight = par.at(3) + par.at(0) * TMath::Erf((p-par.at(2))/par.at(1));
+      const double Cweight = 1.0 - CCweight;
+      returnvalue = ( CCweight * eff_cc + Cweight * eff_c ) / ( CCweight + Cweight );
+
+
+
+    } else  if(flavlabel[iflav] == "b") {
+      //get c and cc efficiencies
+      const double eff_b = this->eff(iflav_b,"CSVT",pt,eta);
+      const double eff_bb = this->eff(iflav_bb,"CSVT",pt,eta);
+    
+      const std::vector<double> &par = BBoverBplusBB_pars[scenario];
+      const double BBweight = par.at(0)+par.at(1) * p;
+      const double Bweight = 1.0 - BBweight;
+      returnvalue = ( BBweight * eff_bb + Bweight * eff_b ) / ( BBweight + Bweight );
+
+
+    } else if(flavlabel[iflav] == "udsg") {
+      returnvalue = this->eff(iflav,"CSVT",pt,eta);
+    } else {
+      std::cout << "error: bTagEff: unknown flavour: " << flavlabel[iflav] << std::endl;
+      throw std::exception();
+    }
+
+
+    if(returnvalue < 0.0) {
+      std::cout << "error: bTagEff: merged efficiency < 0: eff = " << returnvalue << std::endl;
+      throw std::exception();
+    }
+    
+    return returnvalue;
+
+  }
+
+  // btag error function
+  double erreff(int iflav,const std::string& theBtagLabel,double pt,double eta) {
+    if(forceMerging_) {
+      std::cout << "error: bTagEff.h: unmerged efficiency error function called but merging was forced!" << std::endl;
+      throw std::exception();
+    }
+
+
+
+    if (iflav<0 || iflav>=nflav) {
+      std::cout << "error: erreff: bad flavor " << iflav << std::endl;
+      throw std::exception();
+      return -999999;
+    }
+    int ibtag = -1;
+    for (int jbtag=0; jbtag<nbtag; ++jbtag) {
+      if (sbtag[jbtag] == theBtagLabel) {
+        ibtag = jbtag;
+        break;
+      }
+    }
+    if (ibtag == -1) {
+      std::cout << "error: Bad btag type requested " << theBtagLabel << std::endl;
+      throw std::exception();
+      return -999999;
+    }
+    //#ifndef PTMAX300
+    // to avoid sampling outside of histogram borders
+    //if (pt>=300) pt=299.9;
+
+    if (pt>=800) pt=799.999;
+    if (pt<=20.0) pt=20.000001;
+
+
+
+    //#endif
+    if (herr2D[iflav][ibtag] == NULL) {
+      std::cout << "error: erreff: no histo stored" << std::endl;
+      throw std::exception();
+      return 0;
+    }
+    return herr2D[iflav][ibtag]->Interpolate(pt,fabs(eta));
+  }
+
+  double erreff_merged(int iflav,const std::string& theBtagLabel, const std::string &scenario, double pt,double eta) {
+    std::cout << "error: bTagEff::erreff_merged(...) not yet implemented!" << std::endl;
+    throw std::exception();
+    return 9999999999.0;
+  }
+
+
+  // smear according to statistical error
+  void randomize() {
+    TRandom3 rdm;
+    rdm.SetSeed(0);
+    for (int iflav=0; iflav<nflav; ++iflav) {
+      for (int ibtag=0; ibtag<nbtag; ++ibtag) {
+        if (onloff == "online") {
+          std::cout << "bTagEff::randomize: not supported for online" << std::endl;
+        } else {
+          //std::cout << "==== Randomize iflav " << iflav << " btag " << sbtag[ibtag] 
+          //	    << std::endl;
+          for (int ibinx=1; ibinx<=hrel2D[iflav][ibtag]->GetXaxis()->GetNbins(); ++ibinx) {
+            for (int ibiny=1; ibiny<=hrel2D[iflav][ibtag]->GetYaxis()->GetNbins(); ++ibiny) {
+              double theContent = hrel2D[iflav][ibtag]->GetBinContent(ibinx,ibiny);
+              double theError = hrel2D[iflav][ibtag]->GetBinError(ibinx,ibiny);
+              double theDelta = 0;
+              if (theError>0) theDelta = rdm.Gaus(0,theError);
+              double newContent = theContent + theDelta;
+              if (newContent<0) newContent = 0;
+              //	std::cout << ibinx << " " << ibiny
+              //      	<< "  oldeff= " << theContent
+              //       	<< " +- " << theError
+              //	<< " delta " << theDelta
+              //	<< " neweff= " << newContent << std::endl;
+              hrel2D[iflav][ibtag]->SetBinContent(ibinx,ibiny,newContent);
+            }
+          }
+        }
+      }
+    }
+  }
+  // store to an output file
+  void write(const char* outName) {
+    TFile* hout = new TFile(outName,"recreate");
+    for (int iflav=0; iflav<nflav; ++iflav) {
+      for (int ibtag=0; ibtag<nbtag; ++ibtag) {
+        hrel2D[iflav][ibtag]->Write();
+      }
+    }
+    hout->Close();
+  }
+};
+
+
+
+
+class bTagEffOld {
+
+public:
+
+  std::string file;
+  std::string onloff;
+
+  std::string flavlabel[3];
+  std::string sbtag[3];
+
+  TFile* hfile;
+  TH2D* hrel2D[4][4];
+  //TH2D*** hrel2D;
+
+  bTagEffOld(std::string & theFile, 
+	     std::string & theonloff, 
+	     std::string * theFlavlabel,
+	     std::string * theBtagLabel ){
+    
+    nflav = 3;
+    nbtag  = 3;
+    
+
+    if (theonloff != "online" && theonloff != "offline") {
+      std::cout << "bTagEff constructor: Bad online/offline mode " << theonloff << std::endl;
+      return;
+    }
+    hfile = TFile::Open( theFile.c_str() );
+    if (hfile == NULL) {
+      std::cout << "bTagEff constructor: Cannot open file " << theFile << std::endl;
+      return;
+    }
+
+    flavlabel[0] = theFlavlabel[0];
+    flavlabel[1] = theFlavlabel[1];
+    flavlabel[2] = theFlavlabel[2];
+    sbtag[0] = theBtagLabel[0];
+    sbtag[1] = theBtagLabel[1];
+    sbtag[2] = theBtagLabel[2];
+
+    for (int iflav=0; iflav<nflav; ++iflav) {
+      for (int ibtag=0; ibtag<nbtag; ++ibtag) {
+	if (theonloff == "online") {
+	  hrel2D[iflav][ibtag] = (TH2D*) hfile->Get( Form("pteta_%s_%s_releff",sbtag[ibtag].c_str(),flavlabel[iflav].c_str()) );
+	  if (hrel2D[iflav][ibtag] == NULL) std::cout << "Histogram not found: " 
+                                                      << Form("pteta_%s_%s_releff",sbtag[ibtag].c_str(),flavlabel[iflav].c_str()) << std::endl;
+	} else {
+	  hrel2D[iflav][ibtag] = (TH2D*) hfile->Get( Form("pteta_%s_%s_eff_div",sbtag[ibtag].c_str(),flavlabel[iflav].c_str()) );
+	  if (hrel2D[iflav][ibtag] == NULL) std::cout << "Histogram not found: " 
+                                                      << Form("pteta_%s_%s_eff_div",sbtag[ibtag].c_str(),flavlabel[iflav].c_str()) << std::endl;
+	}
+      }
+    }
+  }
+  double eff(int iflav,const std::string& theBtagLabel,double pt,double eta) {
+    if (iflav<0 || iflav>=nflav) {
+      std::cout << "eff: bad flavor " << iflav << std::endl;
+      return -999999;
+    }
+    int ibtag = -1;
+    for (int jbtag=0; jbtag<nbtag; ++jbtag) {
+      if (sbtag[jbtag] == theBtagLabel) {
+        ibtag = jbtag;
+        break;
+      }
+    }
+    if (ibtag == -1) {
+      std::cout << "Bad btag type requested " << theBtagLabel << std::endl;
+      return -999999;
+    }
+    if (pt>=600) pt=599.999;
+    if (pt<=20.0) pt=20.000001;
+
+
+
+    return hrel2D[iflav][ibtag]->Interpolate(pt,fabs(eta));
+  }
+
+protected://private:
+
+  int nflav;
+  int nbtag;
+
+
+
+};
+
+#endif // #ifdef 

@@ -1,0 +1,347 @@
+#ifndef GeneralHistos_h
+#define GeneralHistos_h
+#include "Analysis/Utilities/interface/HbbNtuple.h"
+#include <string>
+#include <vector>
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <sstream>
+#include <TFile.h>
+#include <TH1D.h>
+#include <TH2D.h>
+#include "Analysis/Utilities/interface/TrigHistArray.h"
+#include "Analysis/Utilities/interface/TrigHistArray2D.h"
+#include "Analysis/Utilities/interface/checkHLTBTagMatch.h"
+
+class GeneralHistos {
+ public:
+  GeneralHistos(
+                TFile *hout,
+                const std::vector<std::string> &gl,
+                const std::vector<std::string> &tf,
+                checkHLTBtagMatch &H
+                );
+  ~GeneralHistos(){};
+  int Fill(
+           const unsigned trgSelect,
+           const double maxEta,
+           const double deltaEtaCut12,
+           const double *jetPtMax,
+           const bool forceTripleOnlineBtagMatch,
+           const double weight
+           );//assumes that the variables in HbbNtuple.h are filled with the current event content
+ private:
+  int bookHistos(TFile *hout);
+ 
+  
+  std::vector<std::string> genericTriggerList; //FIXME: make const?
+  std::vector<std::string> triggerFilterList; //FIXME: make const?
+  checkHLTBtagMatch HLTBtagMatchObj;
+
+  static const unsigned int ngeneralhistoscuts = 8;
+  std::vector<double> generalHistosJetCuts;
+  std::vector<bool> applyLooseJetPUID;
+
+  //the histos
+  TrigHistArray* ptJetA[3][ngeneralhistoscuts];
+  TrigHistArray* etaJetA[3][ngeneralhistoscuts];
+  TrigHistArray* phiJetA[3][ngeneralhistoscuts];
+  TrigHistArray* phiL2JetA[3][ngeneralhistoscuts];
+  TrigHistArray* nL2JetA[ngeneralhistoscuts];
+  
+  TrigHistArray* tcheJetA[3][ngeneralhistoscuts];
+  TrigHistArray* tchpJetA[3][ngeneralhistoscuts];
+  TrigHistArray* isJetWithBtagA[3][ngeneralhistoscuts];
+
+  TrigHistArray* deltaEtaHLTBTagMatch2outof3[ngeneralhistoscuts]; //delta eta between two leading jets
+  TrigHistArray* deltaEtaNoHLTBTagMatch[ngeneralhistoscuts]; //delta eta between two leading jets
+  
+  TrigHistArray* inclusivePtHLTBTagMatch2outof3[ngeneralhistoscuts]; //inclusive jet pt distribution
+  TrigHistArray* inclusivePtNoHLTBTagMatch[ngeneralhistoscuts];//inclusive jet pt distribution
+
+  TrigHistArray* CSV_discr_inclusive_HLTBTagMatch2outof3[ngeneralhistoscuts];
+  TrigHistArray* CSV_discr_inclusive_NoHLTBTagMatch[ngeneralhistoscuts];
+
+  TrigHistArray* CSV_discr_jet_HLTBTagMatch2outof3[3][ngeneralhistoscuts];
+  TrigHistArray* CSV_discr_jet_NoHLTBTagMatch[3][ngeneralhistoscuts];
+
+  TrigHistArray* CSV_discr_jet_HLTBTagMatch2outof3_isJetWithOnlineBtag[3][ngeneralhistoscuts];
+  TrigHistArray* CSV_discr_jet_NoHLTBTagMatch_isJetWithOnlineBtag[3][ngeneralhistoscuts];
+
+};
+
+// here now the implementation
+GeneralHistos::GeneralHistos(
+                             TFile *hout,
+                             const std::vector<std::string> &gl,
+                             const std::vector<std::string> &tf,
+                             checkHLTBtagMatch &H
+                             ) 
+  : genericTriggerList(gl),
+    triggerFilterList(tf),
+    HLTBtagMatchObj(H)
+{
+
+  generalHistosJetCuts.push_back(60.0);generalHistosJetCuts.push_back( 53.0);generalHistosJetCuts.push_back(20.0);
+  generalHistosJetCuts.push_back(80.0);generalHistosJetCuts.push_back( 70.0);generalHistosJetCuts.push_back(20.0);
+  generalHistosJetCuts.push_back(160.0);generalHistosJetCuts.push_back( 120.0);generalHistosJetCuts.push_back(20.0);
+  generalHistosJetCuts.push_back(46.0);generalHistosJetCuts.push_back( 38.0);generalHistosJetCuts.push_back(20.0); //this one is just for tests
+  
+  generalHistosJetCuts.push_back(60.0);generalHistosJetCuts.push_back(53.0);generalHistosJetCuts.push_back(20.0);//with loose jet pu id
+  generalHistosJetCuts.push_back( 80.0);generalHistosJetCuts.push_back(70.0);generalHistosJetCuts.push_back(20.0);//with loose jet pu id
+  generalHistosJetCuts.push_back(160.0);generalHistosJetCuts.push_back(120.0);generalHistosJetCuts.push_back(20.0);//with loose jet pu id
+  generalHistosJetCuts.push_back(46.0);generalHistosJetCuts.push_back(38.0);generalHistosJetCuts.push_back(20.0);//with loose jet pu id
+  
+  applyLooseJetPUID.push_back(false);
+  applyLooseJetPUID.push_back(false);
+  applyLooseJetPUID.push_back(false);
+  applyLooseJetPUID.push_back(false);
+  applyLooseJetPUID.push_back(true);
+  applyLooseJetPUID.push_back(true);
+  applyLooseJetPUID.push_back(true);
+  applyLooseJetPUID.push_back(true);
+
+
+  //verify size of array
+  if(generalHistosJetCuts.size() != (3*ngeneralhistoscuts) || applyLooseJetPUID.size() != ngeneralhistoscuts) {
+    std::cout << "error: GeneralHistos misconfiguration in constructor. Size mismatch of created arrays." << std::endl;
+    throw std::exception();
+  }
+  
+ 
+  
+  this->bookHistos(hout);
+}
+
+int GeneralHistos::Fill(
+                        const unsigned trgSelect,
+                        const double maxEta,
+                        const double deltaEtaCut12,
+                        const double *jetPtMax,
+                        const bool forceTripleOnlineBtagMatch,
+                        const double weight             
+                        )
+{
+  int nSelJet = 3;
+  for(unsigned int iJetCuts = 0; iJetCuts < ngeneralhistoscuts; iJetCuts++)
+    {
+      std::vector<int> leadingJets;
+
+      // find set of leading jets
+      int nJet = 0;
+      // loop over the jets
+      for (int iJet=0; iJet<numberOfJets; ++iJet) {
+        if (nJet >= nSelJet) break;
+        if (! (fabs(etaJet[iJet])<maxEta) ) continue;
+
+        if (! (numberOfConstituentsInJet[iJet] > 1) ) continue;
+        if(applyLooseJetPUID[iJetCuts] && !puJetIDLoose[iJet]) continue;
+
+        if ( (ptJet[iJet] > generalHistosJetCuts[3*iJetCuts+nJet]) && (ptJet[iJet] < jetPtMax[nJet]) ) {
+          leadingJets.push_back(iJet);
+          ++nJet;
+        }
+      }
+
+
+
+      if (nJet < nSelJet) continue;
+
+      float deltaR12 = -1.0f;
+      float deltaR23 = -1.0f;
+      float deltaR13 = -1.0f;
+
+      float deltaEta = 9999.9; //between leading jets
+
+      if(nJet >= 2)
+        {
+          const float detaj = etaJet[leadingJets[0]] - etaJet[leadingJets[1]];
+          float dphij =  phiJet[leadingJets[1]] - phiJet[leadingJets[0]];
+          if (dphij>3.1415926) dphij -= 2*3.1415926;
+          if (dphij<-3.1415926) dphij += 2*3.1415926;      
+          deltaR12 = sqrt( dphij*dphij + detaj*detaj );
+          deltaEta = TMath::Abs(etaJet[leadingJets[1]] - etaJet[leadingJets[0]]);
+        }
+      if(nJet >= 3)
+        {
+          const float detaj = etaJet[leadingJets[0]] - etaJet[leadingJets[2]];
+          float dphij =  phiJet[leadingJets[2]] - phiJet[leadingJets[0]];
+          if (dphij>3.1415926) dphij -= 2*3.1415926;
+          if (dphij<-3.1415926) dphij += 2*3.1415926;      
+          deltaR13 = sqrt( dphij*dphij + detaj*detaj );
+        }
+      if(nJet >= 3)
+        {
+          const float detaj = etaJet[leadingJets[1]] - etaJet[leadingJets[2]];
+          float dphij =  phiJet[leadingJets[2]] - phiJet[leadingJets[1]];
+          if (dphij>3.1415926) dphij -= 2*3.1415926;
+          if (dphij<-3.1415926) dphij += 2*3.1415926;      
+          deltaR23 = sqrt( dphij*dphij + detaj*detaj );
+        }
+                
+
+
+
+      // check the matching flags
+      int mJet = 0;
+      int matchPat = 0;
+      for (int iJet=0; iJet<numberOfJets; ++iJet) {
+        if (! (ptJet[iJet] > 15) ) continue;
+        if (! (fabs(etaJet[iJet])<maxEta) ) continue;
+        if (! (numberOfConstituentsInJet[iJet] > 1) ) continue;
+        {
+
+
+          if (HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[iJet],isJetWithL25JetBitPattern[iJet],run)) {
+	
+            matchPat = matchPat | (1<<mJet);
+
+
+          }
+
+        }
+        ++mJet;
+      }
+  
+
+      bool tripleOnlineBtagMatchOK = true;
+      if (forceTripleOnlineBtagMatch) {
+        tripleOnlineBtagMatchOK = false;
+        if (nJet>=nSelJet ) {
+          tripleOnlineBtagMatchOK = (HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[0]],isJetWithL25JetBitPattern[leadingJets[0]],run) && HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[1]],isJetWithL25JetBitPattern[leadingJets[1]],run))
+            || (HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[0]],isJetWithL25JetBitPattern[leadingJets[0]],run) && HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[2]],isJetWithL25JetBitPattern[leadingJets[2]],run))
+            || (HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[1]],isJetWithL25JetBitPattern[leadingJets[1]],run) && HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[2]],isJetWithL25JetBitPattern[leadingJets[2]],run));
+        }
+      }
+        
+      bool BtagMatch2outof3 = (HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[0]],isJetWithL25JetBitPattern[leadingJets[0]],run) && HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[1]],isJetWithL25JetBitPattern[leadingJets[1]],run))
+        || (HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[0]],isJetWithL25JetBitPattern[leadingJets[0]],run) && HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[2]],isJetWithL25JetBitPattern[leadingJets[2]],run))
+        || (HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[1]],isJetWithL25JetBitPattern[leadingJets[1]],run) && HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[2]],isJetWithL25JetBitPattern[leadingJets[2]],run));
+    
+
+      if ( (nJet>=nSelJet) && BtagMatch2outof3 && deltaR12 > 1.0 && deltaR23 > 1.0 && deltaR13 > 1.0 && deltaEta < deltaEtaCut12)
+        {
+          const float detaj = etaJet[leadingJets[0]] - etaJet[leadingJets[1]];
+          deltaEtaHLTBTagMatch2outof3[iJetCuts]->fill(trgSelect,detaj,weight);
+
+          for (int iJ=0; iJ<nSelJet; ++iJ) {
+            inclusivePtHLTBTagMatch2outof3[iJetCuts]->fill(trgSelect,ptJet[leadingJets[iJ]],weight);
+            CSV_discr_inclusive_HLTBTagMatch2outof3[iJetCuts]->fill(trgSelect,combSVBJetTag[leadingJets[iJ]],weight);
+            CSV_discr_jet_HLTBTagMatch2outof3[iJ][iJetCuts]->fill(trgSelect,combSVBJetTag[leadingJets[iJ]],weight);
+            if(HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[iJ]],isJetWithL25JetBitPattern[leadingJets[iJ]],run))
+              {
+                CSV_discr_jet_HLTBTagMatch2outof3_isJetWithOnlineBtag[iJ][iJetCuts]->fill(trgSelect,combSVBJetTag[leadingJets[iJ]],weight);
+              }
+          }
+        }
+
+    
+      if ( (nJet>=nSelJet) && deltaR12 > 1.0 && deltaR23 > 1.0 && deltaR13 > 1.0 && deltaEta < deltaEtaCut12) //no HLT btag matching
+        {
+          const float detaj = etaJet[leadingJets[0]] - etaJet[leadingJets[1]];
+          deltaEtaNoHLTBTagMatch[iJetCuts]->fill(trgSelect,detaj,weight);
+
+          for (int iJ=0; iJ<nSelJet; ++iJ) {
+            inclusivePtNoHLTBTagMatch[iJetCuts]->fill(trgSelect,ptJet[leadingJets[iJ]],weight);
+            CSV_discr_inclusive_NoHLTBTagMatch[iJetCuts]->fill(trgSelect,combSVBJetTag[leadingJets[iJ]],weight);
+            CSV_discr_jet_NoHLTBTagMatch[iJ][iJetCuts]->fill(trgSelect,combSVBJetTag[leadingJets[iJ]],weight);
+            if(HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[iJ]],isJetWithL25JetBitPattern[leadingJets[iJ]],run))
+              {
+                CSV_discr_jet_NoHLTBTagMatch_isJetWithOnlineBtag[iJ][iJetCuts]->fill(trgSelect,combSVBJetTag[leadingJets[iJ]],weight);
+              }
+          }
+
+        }
+
+      
+      if ( (nJet>=nSelJet) && deltaR12 > 1.0 && deltaR23 > 1.0 && deltaR13 > 1.0 && deltaEta < deltaEtaCut12 ) {
+        nL2JetA[iJetCuts]->fill(trgSelect,l2NumberOfJets,weight);
+        for (int iJ=0; iJ<l2NumberOfJets; ++iJ) {
+          if(iJ<3)
+            phiL2JetA[iJ][iJetCuts]->fill(trgSelect,l2PhiJet[iJ],weight);
+        }
+      }
+      if ( (nJet>=nSelJet) && tripleOnlineBtagMatchOK && deltaR12 > 1.0 && deltaR23 > 1.0 && deltaR13 > 1.0 && deltaEta < deltaEtaCut12) {
+        for (int iJ=0; iJ<nSelJet; ++iJ) {
+          // jet kinematics
+          ptJetA[iJ][iJetCuts]->fill(trgSelect,ptJet[leadingJets[iJ]],weight);
+          etaJetA[iJ][iJetCuts]->fill(trgSelect,etaJet[leadingJets[iJ]],weight);
+          phiJetA[iJ][iJetCuts]->fill(trgSelect,phiJet[leadingJets[iJ]],weight);
+          isJetWithBtagA[iJ][iJetCuts]->fill(trgSelect,HLTBtagMatchObj.check(isJetWithHltBtagBitPattern[leadingJets[iJ]],isJetWithL25JetBitPattern[leadingJets[iJ]],run),weight);
+        }
+      }
+    }
+
+  return 1;
+}
+
+int GeneralHistos::bookHistos(TFile *hout)
+{
+  if (hout->GetDirectory("general")) {
+  } else {
+    hout->mkdir("general");
+  }
+  
+  hout->cd("general");
+  std::cout << "book general histograms" << std::endl;
+  
+  for(unsigned int iJetCuts = 0; iJetCuts < ngeneralhistoscuts; iJetCuts++)
+    {
+      deltaEtaHLTBTagMatch2outof3[iJetCuts] = new TrigHistArray(&genericTriggerList,&triggerFilterList,Form("deltaEtaHLTBTagMatch2outof3_JetCuts%d",iJetCuts),"#Delta#eta",60,-5.0,5.0);
+      deltaEtaNoHLTBTagMatch[iJetCuts] = new TrigHistArray(&genericTriggerList,&triggerFilterList,Form("deltaEtaNoHLTBTagMatch_JetCuts%d",iJetCuts),"#Delta#eta",60,-5.0,5.0);
+
+ 
+  
+      inclusivePtHLTBTagMatch2outof3[iJetCuts] = new TrigHistArray(&genericTriggerList,&triggerFilterList,Form("inclusivePtHLTBTagMatch2outof3_JetCuts%d",iJetCuts),"inclusive jet p_{T} (GeV)",75,0.0,600.0);
+      inclusivePtNoHLTBTagMatch[iJetCuts] = new TrigHistArray(&genericTriggerList,&triggerFilterList,Form("inclusivePtNoHLTBTagMatch_JetCuts%d",iJetCuts),"inclusive jet p_{T} (GeV)",75,0.0,600.0);
+  
+ 
+  
+      CSV_discr_inclusive_HLTBTagMatch2outof3[iJetCuts] = new TrigHistArray(&genericTriggerList,&triggerFilterList,Form("CSV_discr_inclusive_HLTBTagMatch2outof3_JetCuts%d",iJetCuts),"CSV btag discriminator", 50, -0.05, 1.05);
+      CSV_discr_inclusive_NoHLTBTagMatch[iJetCuts] = new TrigHistArray(&genericTriggerList,&triggerFilterList,Form("CSV_discr_inclusive_NoHLTBTagMatch_JetCuts%d",iJetCuts),"CSV btag discriminator", 50, -0.05, 1.05);
+
+      //the same per jet
+      for (int ii=0; ii<3; ++ii) {
+        CSV_discr_jet_HLTBTagMatch2outof3[ii][iJetCuts] = new TrigHistArray(&genericTriggerList,&triggerFilterList,Form("CSV_discr_jet%d_HLTBTagMatch2outof3_JetCuts%d",ii,iJetCuts),Form("CSV discr. of %dth leading jet",ii+1), 50, -0.05, 1.05);
+        CSV_discr_jet_NoHLTBTagMatch[ii][iJetCuts] = new TrigHistArray(&genericTriggerList,&triggerFilterList,Form("CSV_discr_jet%d_NoHLTBTagMatch_JetCuts%d",ii,iJetCuts),Form("CSV discr. of %dth leading jet",ii+1), 50, -0.05, 1.05);
+ 
+        CSV_discr_jet_HLTBTagMatch2outof3_isJetWithOnlineBtag[ii][iJetCuts] = new TrigHistArray(&genericTriggerList,&triggerFilterList,Form("CSV_discr_jet%d_HLTBTagMatch2outof3_isJetWithOnlineBtag_JetCuts%d",ii,iJetCuts),Form("CSV discr. of %dth leading matched jet",ii+1), 50, -0.05, 1.05);
+        CSV_discr_jet_NoHLTBTagMatch_isJetWithOnlineBtag[ii][iJetCuts] = new TrigHistArray(&genericTriggerList,&triggerFilterList,Form("CSV_discr_jet%d_NoHLTBTagMatch_isJetWithOnlineBtag_JetCuts%d",ii,iJetCuts),Form("CSV discr. of %dth leading matched jet",ii+1), 50, -0.05, 1.05);
+      }
+
+      nL2JetA[iJetCuts] = new TrigHistArray(&genericTriggerList,&triggerFilterList,Form("nL2Jets_JetCuts%d",iJetCuts),"number of L2 jets", 100, 0.0, 100.0);
+    
+      for (int ii=0; ii<3; ++ii) {
+        ptJetA[ii][iJetCuts] = new TrigHistArray(&genericTriggerList,&triggerFilterList,Form("ptj%d_JetCuts%d",ii,iJetCuts),Form("pt of %dth leading jet",ii+1),75,0,600);
+        etaJetA[ii][iJetCuts] = new TrigHistArray(&genericTriggerList,&triggerFilterList,Form("aetaj%d_JetCuts%d",ii,iJetCuts),Form("eta of %dth leading jet",ii+1), 100, -3.5, 3.5);
+        phiJetA[ii][iJetCuts] = new TrigHistArray(&genericTriggerList,&triggerFilterList,Form("aphij%d_JetCuts%d",ii,iJetCuts),Form("phi of %dth leading jet",ii+1), 100, -3.15, 3.15);
+        phiL2JetA[ii][iJetCuts] = new TrigHistArray(&genericTriggerList,&triggerFilterList,Form("aphiL2j%d_JetCuts%d",ii,iJetCuts),Form("phi of %dth leading L2jet",ii+1), 100, -3.15, 3.15);
+
+
+        tcheJetA[ii][iJetCuts] = new TrigHistArray(&genericTriggerList,&triggerFilterList,Form("tchej%d_JetCuts%d",ii,iJetCuts),Form("TCHE of %dth leading jet, ptjet>50",ii+1), 60, -10, 20 );
+        tchpJetA[ii][iJetCuts] = new TrigHistArray(&genericTriggerList,&triggerFilterList,Form("tchpj%d_JetCuts%d",ii,iJetCuts),Form("TCHP of %dth leading jet, ptjet>50",ii+1), 60, -10, 20 );
+        isJetWithBtagA[ii][iJetCuts] = new TrigHistArray(&genericTriggerList,&triggerFilterList,Form("isWithBtagj%d_JetCuts%d",ii,iJetCuts),Form("IsJetWithBtag for %dth leading jet",ii+1),10,-3.5,6.5);
+      }
+    }
+  hout->cd();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  return 0;
+}
+
+#endif

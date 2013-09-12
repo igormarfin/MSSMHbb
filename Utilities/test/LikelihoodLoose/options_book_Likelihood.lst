@@ -1,0 +1,68 @@
+//It's comments
+//--- Id                       : Preparing the Identity transformation...
+//--- TFHandler_Factory        : -----------------------------------------------------------------------------------------------------------------------
+//--- TFHandler_Factory        :             Variable                    Mean                    RMS            [        Min                    Max ]
+//--- TFHandler_Factory        : -----------------------------------------------------------------------------------------------------------------------
+//--- TFHandler_Factory        :             Et3byEt1:               0.48266               0.17042   [              0.012006                1.0197 ]
+//--- TFHandler_Factory        :             Et3byEt2:               0.64097               0.20613   [              0.013671                1.0478 ]
+//--- TFHandler_Factory        :         detajet1jet2:                1.0023               0.75391   [            1.7274e-06                5.1965 ]
+//--- TFHandler_Factory        :         detajet2jet3:                1.1054               0.81526   [            2.7479e-06                5.1750 ]
+//--- TFHandler_Factory        :         dphijet1jet3:                2.1716               0.70965   [            5.7121e-05                3.1416 ]
+//--- TFHandler_Factory        :         dphijet2jet3:                1.3920               0.78772   [            2.3395e-07                3.1416 ]
+//--- TFHandler_Factory        : dphijet2jet3_boost12:                1.1150               0.66255   [            2.0878e-06                3.1416 ]
+//--- TFHandler_Factory        :          dptjet1jet3:               0.22280              0.099755   [            -0.0058746               0.79193 ]
+//--- TFHandler_Factory        :           sphericity:               0.31404               0.17966   [            0.00020152               0.93043 ]
+//--- TFHandler_Factory        :    thetajet1_boost12:                1.5634               0.56385   [              0.010303                3.1385 ]
+//--- TFHandler_Factory        : -----------------------------------------------------------------------------------------------------------------------
+
+///Simple Likelihood
+
+///NameMVA=Likelihood
+
+///Common for Likelihood
+!TransformOutput:PDFInterpol=Spline3:Nbins=50:NSmooth=15
+
+//Et3byEt1:
+//NbinsBkg[0]=40:NSmoothBkg[0]=15
+NbinsBkg[0]=30:NSmoothBkg[0]=15
+NbinsSig[0]=30:NSmoothSig[0]=15
+
+//Et3byEt2:
+//NbinsBkg[1]=50:NSmoothBkg[1]=15
+//NbinsBkg[1]=20:NSmoothBkg[1]=5
+NbinsBkg[1]=20:NSmoothBkg[1]=15
+
+//detajet1jet2: 
+//NbinsBkg[2]=40:NSmoothBkg[2]=15
+NbinsBkg[2]=20:NSmoothBkg[2]=15
+
+//detajet2jet3:
+//NbinsBkg[3]=20:NSmoothBkg[3]=5
+NbinsBkg[3]=30:NSmoothBkg[3]=15
+
+//dphijet1jet3:
+//NbinsBkg[4]=20:NSmoothBkg[4]=5
+NbinsBkg[4]=20:NSmoothBkg[4]=15
+
+//dphijet2jet3:
+//NbinsBkg[5]=20:NSmoothBkg[5]=5
+NbinsBkg[5]=20:NSmoothBkg[5]=20
+NbinsSig[5]=20:NSmoothSig[5]=15
+
+//dphijet2jet3_boost12:
+//NbinsBkg[6]=20:NSmoothBkg[6]=5
+NbinsBkg[6]=20:NSmoothBkg[6]=15
+NbinsSig[6]=20:NSmoothSig[6]=20
+
+//dptjet1jet3:
+//NbinsBkg[7]=50:NSmoothBkg[7]=15
+NbinsBkg[7]=30:NSmoothBkg[7]=15
+NbinsSig[7]=30:NSmoothSig[7]=15
+
+//sphericity:
+NbinsBkg[8]=30:NSmoothBkg[8]=20
+
+//thetajet1_boost12:
+//NbinsBkg[9]=40:NSmoothBkg[9]=20
+//NbinsBkg[9]=30:NSmoothBkg[9]=20
+NbinsBkg[9]=20:NSmoothBkg[9]=15

@@ -1,0 +1,5 @@
+///Some options common for trainig and testing
+
+///nameMVA=100ktrain_
+nTrain_Signal=100000:nTrain_Background=100000:SplitMode=Random:SplitSeed=100:NormMode=EqualNumEvents:!V
+nTest_Signal=100000:nTest_Background=100000

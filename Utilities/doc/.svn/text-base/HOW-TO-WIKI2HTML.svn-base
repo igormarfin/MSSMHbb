@@ -1,0 +1,24 @@
+WIKI markup is very simple and 'light'. You can create your own 'online' documents/man-pages in very easy way.
+
+Here is a short introduction to wiki markup
+
+http://www.mediawiki.org/wiki/Help:Formatting#Inserting_symbols
+
+After writtings of wiki, please, convert it to html man-pages, ie
+
+<mva-classes.wiki>
+1)  ./mediawiki2texi.py mva-classes.wiki mva-classes.info "MVA Classes" > mva-classes.texinfo
+2)  makeinfo --html mva-classes.texinfo 
+you can get simple README file (text file)
+3) makeinfo mva-classes.texinfo
+
+<mva-train.wiki>
+1)  ./mediawiki2texi.py mva-train.wiki mva-train.info "MVA Training" > mva-train.texinfo
+2)  makeinfo --html mva-train.texinfo
+you can get simple README file (text file)
+3) makeinfo mva-train.texinfo
+
+
+
+
+@2012 I. Marfin <Igor.Marfin@desy.de>

@@ -1,0 +1,61 @@
+== Introduction ==
+
+''' @2012 I. Marfin '''   ''<Higgs DESY Group>''
+
+
+There are two main classes of MVA support, placed in
+               Analysis/Utilities/interface
+               Analysis/Utilities/src
+
+# '''MVATrainer'''(.h,.cc)
+# '''MVAComputer'''(.h,.cc)
+
+== MVATrainer == 
+
+The class performs creation of trees used later in MVA training. It requires to know values of all input varaibles during running each event.
+There is a special class '''MVAInputVars''' calculating the variables during run-time. If you want to add a new variable "myvar", you have to 
+# add method '''double MVAInputVars::myvar() const''' 
+# add a new element to vals_: vals_["myvar"]=... in '''MVATrainer.h'''
+
+=== Initialization === 
+
+         MVATrainer * trainer = new MVATrainer("name","name",string(fileDir.Data()),string(""));
+
+
+* name -- some name of the trainer
+* fileDir -- xml file with input variables descriptions
+
+=== Invoke ===
+
+Somewhere in the code ...
+
+        trainer->ProcessEvent(vecJets,theFlav,weight);
+
+* vecJets -- vector of objects which quantities are use to calculate variables
+* theFlav -- vector of 'flavors' (types) of objects (some variables depend on flavors).
+* weight -- weight of the concrete event
+
+== MVAComputer ==
+
+The class is based on '''TMVA::Reader''', which reads ''weights/*.xml''  files representing MVA discriminators.
+
+=== Initialization ===
+
+         MVAComputer * computer = new MVAComputer("name,"name",string("dir"),mvaMethods);
+
+* name -- unique name of the computer
+* dir -- the dir containings weight-xml files, ''/bla/bla/bla/weights/*.xml''
+* mvaMethods -- std::vector of std::string of the 'method name' coded in  ''/bla/bla/bla/weights/*.xml''
+
+=== Invoke ===
+
+Somewhere in the code ...
+        computer->ProcessEvent(vecJets) ; /// calculate mva response
+        double res= computer->GetOutPut(); /// get response
+
+
+
+== Contact ==
+
+Igor Marfin <'''Igor.Marfin@desy.de'''>
+

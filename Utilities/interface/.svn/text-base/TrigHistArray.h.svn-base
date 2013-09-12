@@ -1,0 +1,172 @@
+#ifndef TrigHistArray_h
+#define TrigHistArray_h
+
+#include <exception>
+#include <string>
+#include <vector>
+
+#include "TH1.h"
+#include "TH1F.h"
+
+
+class TrigHistArray {
+private:
+  std::vector<TH1*> histos_;
+  TH1* histAllTrig_;
+  TH1* histAllTrigWeighted_;
+  const std::vector<std::string> gtl_;  // genericTriggerList
+  unsigned int filterPattern_;
+  
+
+public:
+  TrigHistArray()
+    : gtl_(std::vector<std::string>(0)) {
+    std::cerr << "Standard constructor called, this should not happen" << std::endl;
+  }
+
+  TrigHistArray(const std::vector<std::string> &theGtl,const std::vector<std::string> &theFilter,const char* genName,const char* genTitle,int nx,float xmin,float xmax)
+    : gtl_(theGtl) {
+    char ctn[1000];
+    char ctt[1000];
+    // first set the filter pattern
+    filterPattern_ = 0;
+    if (theFilter.size() > 0) {
+      for (std::vector<std::string>::const_iterator fit=theFilter.begin(); fit != theFilter.end(); ++fit) {
+	std::vector<std::string>::const_iterator tSlotBtag = std::find(gtl_.begin(), gtl_.end(), *fit);
+	if (tSlotBtag != gtl_.end()) {
+	  filterPattern_ = filterPattern_ | (1<<(tSlotBtag - gtl_.begin()));
+	} else {
+	  std::cout << "Filter trigger " << *fit << " not found in any slot" << std::endl;
+	}
+      }
+    } else {
+      filterPattern_ = ~0;  // set all filter bits to one
+    }
+
+    for (unsigned int ib=0; ib<gtl_.size(); ++ib) {
+      TH1* theHist = 0;
+      if (filterPattern_ & (1<<ib)) {
+	sprintf(ctn,"%sTrig%d",genName,ib);
+	sprintf(ctt,"%s Trigger %s",genTitle,gtl_[ib].c_str());
+	theHist = new TH1F(ctn,ctt,nx,xmin,xmax);
+      }
+      histos_.push_back(theHist);
+    }
+    // inclusive histogram
+    sprintf(ctn,"%sAllTrig",genName);
+    sprintf(ctt,"%s all triggers",genTitle);
+    histAllTrig_ = new TH1F(ctn,ctt,nx,xmin,xmax);
+    sprintf(ctn,"%sAllTrigWeighted",genName);
+    sprintf(ctt,"%s all triggers weighted",genTitle);
+    histAllTrigWeighted_ = new TH1F(ctn,ctt,nx,xmin,xmax);
+  }
+  TrigHistArray(const std::vector<std::string> &theGtl, const std::vector<std::string> &theFilter,const char* genName,const char* genTitle,int nx, float *binning) 
+    : gtl_(theGtl) {
+    char ctn[1000];
+    char ctt[1000];
+    // first set the filter pattern
+    filterPattern_ = 0;
+    if (theFilter.size() > 0) {
+      for (std::vector<std::string>::const_iterator fit=theFilter.begin(); fit != theFilter.end(); ++fit) {
+	std::vector<std::string>::const_iterator tSlotBtag = std::find(gtl_.begin(), gtl_.end(), *fit);
+	if (tSlotBtag != gtl_.end()) {
+	  filterPattern_ = filterPattern_ | (1<<(tSlotBtag - gtl_.begin()));
+	} else {
+	  std::cout << "Filter trigger " << *fit << " not found in any slot" << std::endl;
+	}
+      }
+    } else {
+      filterPattern_ = ~0;  // set all filter bits to one
+    }
+
+    for (unsigned int ib=0; ib<gtl_.size(); ++ib) {
+      TH1* theHist = 0;
+      if (filterPattern_ & (1<<ib)) {
+	sprintf(ctn,"%sTrig%d",genName,ib);
+	sprintf(ctt,"%s Trigger %s",genTitle,gtl_[ib].c_str());
+	//theHist = new TH1F(ctn,ctt,nx,xmin,xmax);
+        theHist = new TH1F(ctn,ctt,nx,binning);
+      }
+      histos_.push_back(theHist);
+    }
+    // inclusive histogram
+    sprintf(ctn,"%sAllTrig",genName);
+    sprintf(ctt,"%s all triggers",genTitle);
+    //histAllTrig_ = new TH1F(ctn,ctt,nx,xmin,xmax);
+    histAllTrig_ = new TH1F(ctn,ctt,nx,binning);
+    sprintf(ctn,"%sAllTrigWeighted",genName);
+    sprintf(ctt,"%s all triggers weighted",genTitle);
+    //histAllTrigWeighted_ = new TH1F(ctn,ctt,nx,xmin,xmax);
+    histAllTrigWeighted_ = new TH1F(ctn,ctt,nx,binning);
+  }
+			     
+  void fill(int theTrgAccept,float x,float weight=1) {
+    if( x != x || weight != weight || theTrgAccept != theTrgAccept || weight < 0.0) {
+      std::cout << "error: histogram filled with nan and/or negative weight." << std::endl;
+      throw std::exception();
+    }
+    for (unsigned int ib=0; ib<gtl_.size(); ++ib) {
+      if (theTrgAccept & filterPattern_ & (1<<ib)) {
+	if (histos_[ib] != NULL) {
+	  histos_[ib]->Fill(x,weight);
+	} else {
+	  std::cout << "TrigHistArray::Fill: error: bad histogram pointer " << std::endl;
+          throw std::exception();
+	}
+      }
+    }
+    histAllTrig_->Fill(x);
+    histAllTrigWeighted_->Fill(x,weight);
+  }
+
+  void fillMonitor(const std::vector<float> &trigWeight,float weight=1) {
+    // this is to monitor weight arrays
+    for (unsigned int ib=0; ib<gtl_.size(); ++ib) {
+      if (filterPattern_ & (1<<ib)) {
+	if (histos_[ib] != NULL) {
+	  histos_[ib]->Fill(trigWeight[ib],weight);
+	}
+      }
+    }
+  }
+
+  // deprecated signature, for backward compatibility
+  static void mergeHistos( const int nMerge, TrigHistArray* taMerge[] ) {
+    std::vector< TrigHistArray* > taMergeVec;
+    for(int i = 0; i <= nMerge; ++i) {
+      taMergeVec.push_back(taMerge[i]);
+    }
+    mergeHistos(nMerge,taMergeVec);
+  }
+
+  static void mergeHistos( const int nMerge, std::vector< TrigHistArray* > &taMerge ) {
+    // merge histograms [0]... [nMerge-1], store into [nMerge]
+    if ( taMerge[nMerge] == NULL ) {
+      std::cout << "TrigHistArray::mergeHistos: Cannot find histograms " << std::endl;
+      return;
+    }
+    for (unsigned int ihist=0; ihist<taMerge[nMerge]->histos_.size(); ++ihist) {
+      if (taMerge[nMerge]->histos_[ihist] != NULL) {
+	for (int itpat=0; itpat<3; ++itpat) {
+	  if (taMerge[itpat]->histos_[ihist] != NULL) {
+	    taMerge[nMerge]->histos_[ihist]->Add( taMerge[itpat]->histos_[ihist] );
+	  } else {
+	    std::cout << "TrigHistArray::mergeHistos: Cannot find hist for itpat=" << itpat << std::endl;
+	  }
+	}
+	// replace square-summed errors by linear sum to account for correlation
+	for (int ibin=1; ibin<=taMerge[nMerge]->histos_[ihist]->GetXaxis()->GetNbins(); ++ibin) {
+	  float theError = 0;
+	  for (int itpat=0; itpat<3; ++itpat) {
+	    theError += taMerge[itpat]->histos_[ihist]->GetBinError( ibin );
+	  }
+	  taMerge[nMerge]->histos_[ihist]->SetBinError( ibin, theError );
+	}
+      }
+    }
+  }
+
+};
+
+#endif // #ifdef 
+
